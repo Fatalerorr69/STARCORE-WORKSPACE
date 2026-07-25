@@ -12,6 +12,7 @@ from blueprints.planner import ExecutionPlanner
 from core.database import get_session
 from core.diagnostics import run_diagnostics
 from core.discovery import discover_proxmox_environment
+from core.environment import detect_runtime_environment
 from core.repository import get_run, list_runs, save_run
 from core.resource_actions import execute_resource_action
 from orchestrator.scheduler import Scheduler
@@ -72,10 +73,12 @@ def doctor(
 
     JSON schema (--json):
         {"gates": [{"name": str, "status": "pass"|"fail", "detail": str}],
-         "passed": int, "failed": int}
+         "passed": int, "failed": int,
+         "runtime_environment": "proxmox-host"|"container"|"local"}
 
     Exit codes: 0 = all gates passed, 1 = one or more gates failed.
     """
+    runtime_environment = detect_runtime_environment()
     gates: list[tuple[str, list[str]]] = [
         ("Lockfile", ["uv", "lock", "--check"]),
         ("Ruff lint", ["uv", "run", "ruff", "check", "."]),
@@ -105,12 +108,17 @@ def doctor(
     if json_output:
         print(
             json.dumps(
-                {"gates": results, "passed": len(results) - n_failed, "failed": n_failed},
+                {
+                    "gates": results,
+                    "passed": len(results) - n_failed,
+                    "failed": n_failed,
+                    "runtime_environment": runtime_environment,
+                },
                 indent=2,
             )
         )
     elif not quiet:
-        table = Table(title="Quality Gates")
+        table = Table(title=f"Quality Gates (runtime environment: {runtime_environment})")
         table.add_column("Gate")
         table.add_column("Status")
         table.add_column("Detail")
@@ -143,6 +151,7 @@ def audit(
 
     JSON schema (--json):
         {"branch": str, "sha": str, "working_tree": str,
+         "runtime_environment": "proxmox-host"|"container"|"local",
          "python_files": int, "test_files": int, "recent_commits": [str]}
 
     Exit code: always 0.
@@ -152,6 +161,7 @@ def audit(
         proc = subprocess.run(["git", *args], capture_output=True, text=True)  # noqa: S603
         return proc.stdout.strip() if proc.returncode == 0 else "N/A"
 
+    runtime_environment = detect_runtime_environment()
     branch = _git("rev-parse", "--abbrev-ref", "HEAD")
     sha = _git("rev-parse", "--short", "HEAD")
 
@@ -180,6 +190,7 @@ def audit(
                     "branch": branch,
                     "sha": sha,
                     "working_tree": tree_label,
+                    "runtime_environment": runtime_environment,
                     "python_files": len(py_files),
                     "test_files": len(test_files),
                     "recent_commits": log_lines,
@@ -194,6 +205,7 @@ def audit(
         table.add_row("Branch", branch)
         table.add_row("SHA", sha)
         table.add_row("Working tree", tree_label)
+        table.add_row("Runtime environment", runtime_environment)
         table.add_row("Python files", str(len(py_files)))
         table.add_row("Test files", str(len(test_files)))
         console.print(table)
