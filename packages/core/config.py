@@ -17,11 +17,12 @@ class Settings(BaseSettings):
 
     debug: bool = False
 
+    # False (default): human-readable text logs. True: one JSON object per
+    # log line, suited for log aggregators (Loki, ELK, CloudWatch) that
+    # expect structured input. See core/logger.py.
+    log_json: bool = False
+
     postgres_url: str = "postgresql://starcore:starcore@localhost:5432/starcore"
-
-    redis_url: str = "redis://localhost:6379"
-
-    nats_url: str = "nats://localhost:4222"
 
     database_url: str = "sqlite:///./data/starcore.db"
 
