@@ -13,7 +13,6 @@ from typing import Any
 
 from provider_sdk.registry import register_default_providers, registry
 from sqlalchemy import create_engine
-from sqlalchemy.engine import make_url
 
 from core.config import get_settings
 from core.database import (
@@ -24,6 +23,7 @@ from core.database import (
 )
 from core.environment import detect_cloud_provider, detect_os_platform, detect_runtime_environment
 from core.repository import list_known_provider_vmids
+from core.security import redact_database_url
 
 
 @dataclass
@@ -44,24 +44,6 @@ def _check_api_key() -> CheckResult:
     )
 
 
-def _redact_database_url(database_url: str) -> str:
-    """Render *database_url* with any embedded credentials masked.
-
-    `check_database_connectivity()`'s detail message is surfaced by the
-    unauthenticated `/health` endpoint as well as the authenticated
-    `/diagnostics` endpoint, so it must never echo back a raw DSN -- a
-    `STARCORE_DATABASE_URL` pointing at Postgres/MySQL/etc. commonly embeds
-    `user:password@host`, and that must not leak to an unauthenticated
-    caller. SQLite URLs (the default) carry no credentials, so this is a
-    no-op for them. Falls back to a fixed placeholder, never the raw input,
-    if the URL cannot be parsed.
-    """
-    try:
-        return make_url(database_url).render_as_string(hide_password=True)
-    except Exception:
-        return "<unparseable database URL>"
-
-
 def check_database_connectivity() -> CheckResult:
     """Verify the configured database is reachable.
 
@@ -69,9 +51,11 @@ def check_database_connectivity() -> CheckResult:
     intentionally reused by both `/diagnostics` (authenticated, full
     deployment check) and `/health` (public, liveness/readiness check) so
     the two endpoints never diverge on what "database is reachable" means.
+    Its detail message is surfaced by both, so it must never echo back a
+    raw DSN -- see core.security.redact_database_url.
     """
     settings = get_settings()
-    safe_url = _redact_database_url(settings.database_url)
+    safe_url = redact_database_url(settings.database_url)
     try:
         ensure_sqlite_directory(settings.database_url)
         engine = create_engine(settings.database_url)

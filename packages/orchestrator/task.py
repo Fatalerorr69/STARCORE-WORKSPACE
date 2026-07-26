@@ -15,6 +15,7 @@ class TaskStatus(StrEnum):
     SUCCESS = "success"
     FAILED = "failed"
     SKIPPED = "skipped"
+    SKIPPED_DEPENDENCY_FAILED = "skipped_dependency_failed"
 
 
 @dataclass(slots=True)

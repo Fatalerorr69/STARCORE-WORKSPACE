@@ -85,13 +85,13 @@ apps/cli (Typer)           packages/core/main.py (FastAPI)
 
 **`packages/provider_sdk`** — The stable contract every infrastructure provider must implement: five async methods (`connect`, `disconnect`, `health`, `list_resources`, `execute`). Providers are registered as singletons in a global `ProviderRegistry`. `BaseProvider` supplies a lazily-created `_connect_lock` (an `asyncio.Lock`) so concurrent `connect()` calls from a scheduler wave execute the real connection work exactly once.
 
-**`packages/blueprints`** — Loads YAML blueprints into Pydantic models, resolves Proxmox template aliases (friendly name → `template_vmid`), and produces execution plans. `ExecutionPlanner.create_plan()` returns a flat topologically-sorted list for the sequential executor; `create_plan()` / `create_graph()` both honor `depends_on` as a binding constraint — unknown or circular dependencies raise `ValueError`, never produce a silently wrong order.
+**`packages/blueprints`** — Loads YAML blueprints into Pydantic models, resolves Proxmox template aliases (friendly name → `template_vmid`), and produces execution plans. `ExecutionPlanner.create_plan()` returns a flat topologically-sorted list for the sequential executor, now carrying each step's `depends_on` through so the executor can enforce success (not just order); `create_plan()` / `create_graph()` both honor `depends_on` as a binding constraint — unknown or circular dependencies raise `ValueError`, never produce a silently wrong order.
 
-**`packages/orchestrator`** — Executes already-prepared `TaskGraph` plans. `Scheduler` runs dependency-satisfied tasks concurrently in "waves" via `asyncio.gather` and detects stalls (unresolvable graphs) instead of hanging.
+**`packages/orchestrator`** — Executes already-prepared `TaskGraph` plans. `Scheduler` runs dependency-satisfied tasks concurrently in "waves" via `asyncio.gather` and detects stalls (unresolvable graphs) instead of hanging. `depends_on` is a success gate, not just ordering (ADR-010): a task whose dependency finished `FAILED`/`SKIPPED`/`SKIPPED_DEPENDENCY_FAILED` is itself marked `TaskStatus.SKIPPED_DEPENDENCY_FAILED` without ever reaching `provider.execute()`, and this propagates transitively across waves. `BlueprintExecutor` (the sequential path, `packages/blueprints/executor.py`) enforces the identical rule.
 
-**`packages/core`** — FastAPI app, `pydantic-settings`-based config (all env vars prefixed `STARCORE_`), SQLite persistence via SQLAlchemy + Alembic, an in-process `EventBus`, `PluginManager`, deep diagnostics, and API-wide per-IP rate limiting via `slowapi` (`/health` is exempt). `environment.py` provides four independent checks surfaced via `starcore audit`/`doctor`/`diagnose` and `GET /diagnostics`: `detect_runtime_environment()` (`proxmox-host`/`container`/`local`, fast/local-only), `detect_os_platform()` (OS family, release, WSL detection, fast/local-only), `detect_cloud_provider()` (bounded-timeout AWS/GCP/Azure metadata probe, async, `run_diagnostics()`-only since it's the one network-calling check), and `classify_client_platform()` (User-Agent-based classification of the *calling* client, wired into `GET /diagnostics`'s `client` field).
+**`packages/core`** — FastAPI app, `pydantic-settings`-based config (all env vars prefixed `STARCORE_`), SQLite persistence via SQLAlchemy + Alembic, an in-process `EventBus`, `PluginManager` (plugins are **not sandboxed** — see `docs/plugins.md` — `importlib.import_module()` runs a plugin's top-level code with full process privileges), deep diagnostics, `security.py` (centralized secret redaction: `redact_database_url()` masks credentials in `STARCORE_DATABASE_URL` before `/health`/`/diagnostics` can echo them back; `scrub_configured_secrets()` strips any configured secret found verbatim in provider exception text), and API-wide per-IP rate limiting via `slowapi` (`/health` is exempt). `environment.py` provides four independent checks surfaced via `starcore audit`/`doctor`/`diagnose` and `GET /diagnostics`: `detect_runtime_environment()` (`proxmox-host`/`container`/`local`, fast/local-only), `detect_os_platform()` (OS family, release, WSL detection, fast/local-only), `detect_cloud_provider()` (bounded-timeout AWS/GCP/Azure metadata probe, async, `run_diagnostics()`-only since it's the one network-calling check), and `classify_client_platform()` (User-Agent-based classification of the *calling* client, wired into `GET /diagnostics`'s `client` field).
 
-**`packages/ai`** — Translates natural language into a blueprint YAML via a pluggable `AIProvider` abstract base (`packages/ai/base.py`). `STARCORE_AI_PROVIDER` selects the implementation: `anthropic` (default, requires `STARCORE_ANTHROPIC_API_KEY`) or `openai-compatible` (any `/v1/chat/completions` server — Ollama, LM Studio, vLLM, LocalAI, OpenAI itself — configured via `STARCORE_AI_BASE_URL` / `STARCORE_AI_API_KEY`). `packages/ai/generator.py` builds the configured provider and keeps the public `generate_blueprint_yaml()` API unchanged for callers.
+**`packages/ai`** — Translates natural language into a blueprint YAML via a pluggable `AIProvider` abstract base (`packages/ai/base.py`). `STARCORE_AI_PROVIDER` selects the implementation: `anthropic` (default, requires `STARCORE_ANTHROPIC_API_KEY`, model via `STARCORE_ANTHROPIC_MODEL`) or `openai-compatible` (any `/v1/chat/completions` server — Ollama, LM Studio, vLLM, LocalAI, OpenAI itself — configured via `STARCORE_AI_BASE_URL` / `STARCORE_AI_API_KEY`, with a required, independent `STARCORE_AI_MODEL` — no fallback to the Anthropic model name). `packages/ai/generator.py` builds the configured provider and keeps the public `generate_blueprint_yaml()` API unchanged for callers.
 
 **`packages/providers/docker`** and **`packages/providers/proxmox`** — Concrete `BaseProvider` implementations using `docker-py` and `proxmoxer` respectively.
 
@@ -104,7 +104,7 @@ Both paths must produce identical dependency orderings. The sequential and paral
 
 ### API security
 
-A single static shared API key (`X-API-Key` header, constant-time comparison via `hmac.compare_digest`) protects all endpoints except `/`, `/health`, and static UI assets. The API returns 503 if no key is configured — it fails closed. The `/health` endpoint is intentionally unauthenticated and checks only the database; full provider health lives behind auth at `/diagnostics`.
+A single static shared API key (`X-API-Key` header, constant-time comparison via `hmac.compare_digest`) protects all endpoints except `/`, `/health`, and static UI assets (ADR-012). The API returns 503 if no key is configured — it fails closed. The `/health` endpoint is intentionally unauthenticated and checks only the database; full provider health lives behind auth at `/diagnostics`. Both endpoints' detail messages are credential-redacted via `core/security.py` before they can echo anything from `STARCORE_DATABASE_URL`.
 
 ### Schema management
 
@@ -116,13 +116,13 @@ Never run `create_all()` outside `init_db()`. ORM models live in `packages/core/
 
 ### Plugin system
 
-Plugins are directories in `plugins/<name>/` with an `__init__.py` that exports a `register(context)` function. `context.registry` is the global `ProviderRegistry` (to add custom providers); `context.events` is the global `EventBus` (to subscribe to `task.started`, `task.completed`, `run.completed` events). See `plugins/example_provider/` and `plugins/run_logger/` for reference implementations.
+Plugins are directories in `plugins/<name>/` with an `__init__.py` that exports a `register(context)` function. `context.registry` is the global `ProviderRegistry` (to add custom providers); `context.events` is the global `EventBus` (to subscribe to `task.started`, `task.completed`, `run.completed` events). See `plugins/example_provider/` and `plugins/run_logger/` for reference implementations. **Plugins are not sandboxed** — `importlib.import_module()` runs a plugin's top-level code with the full privileges of the STARCORE process before `register()` is even looked up; see `docs/plugins.md` and ADR-011 before treating `plugins/` as anything less trusted than the codebase itself.
 
 ### Configuration
 
 All settings are read from environment variables with the `STARCORE_` prefix (or a `.env` file, which is gitignored). The `Settings` object is a singleton behind `get_settings()` (LRU-cached). Tests must call `get_settings.cache_clear()` around any `monkeypatch.setenv`/`delenv` calls — `conftest.py` already handles this globally.
 
-Key variables: `STARCORE_API_KEY`, `STARCORE_DATABASE_URL` (default: `sqlite:///./data/starcore.db`), `STARCORE_PROXMOX_*`, `STARCORE_AI_PROVIDER` (`anthropic` or `openai-compatible`), `STARCORE_ANTHROPIC_API_KEY`, `STARCORE_AI_BASE_URL` / `STARCORE_AI_API_KEY` (openai-compatible provider), `STARCORE_LOG_JSON`, `STARCORE_RATE_LIMIT_PER_MINUTE` (0 disables rate limiting).
+Key variables: `STARCORE_API_KEY`, `STARCORE_DATABASE_URL` (default: `sqlite:///./data/starcore.db`), `STARCORE_PROXMOX_*`, `STARCORE_AI_PROVIDER` (`anthropic` or `openai-compatible`), `STARCORE_ANTHROPIC_API_KEY`, `STARCORE_AI_BASE_URL` / `STARCORE_AI_MODEL` / `STARCORE_AI_API_KEY` (openai-compatible provider), `STARCORE_LOG_JSON`, `STARCORE_RATE_LIMIT_PER_MINUTE` (0 disables rate limiting).
 
 ## Test Isolation
 
@@ -150,6 +150,7 @@ uv run bandit -r packages/ apps/ scripts/ -ll -q
 # gitleaks secret scanning (via gitleaks/gitleaks-action, not a local uv command)
 uv run pytest -q --cov --cov-report=term-missing --cov-fail-under=100
 uv run alembic upgrade head && uv run alembic check   # against a throwaway DB, see docs/development.md
+uv run mkdocs build --strict
 ```
 
 CI also builds the Docker image and smoke-tests `GET /health`. A nightly workflow

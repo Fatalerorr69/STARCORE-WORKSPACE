@@ -308,7 +308,12 @@ class _SucceedingProvider(BaseProvider):
         return None
 
 
-_TERMINAL_STATUSES = {TaskStatus.SUCCESS, TaskStatus.FAILED, TaskStatus.SKIPPED}
+_TERMINAL_STATUSES = {
+    TaskStatus.SUCCESS,
+    TaskStatus.FAILED,
+    TaskStatus.SKIPPED,
+    TaskStatus.SKIPPED_DEPENDENCY_FAILED,
+}
 
 
 # ── Additional TaskGraph properties ───────────────────────────────────────────

@@ -8,6 +8,7 @@ import asyncio
 from typing import Any
 
 import docker
+from core.security import scrub_configured_secrets
 from docker.errors import DockerException, NotFound
 from loguru import logger
 from provider_sdk.base import BaseProvider
@@ -41,7 +42,7 @@ class DockerProvider(BaseProvider):
                 client = await asyncio.to_thread(docker.from_env)
                 await asyncio.to_thread(client.ping)
             except DockerException as exc:
-                logger.error("Docker connection failed: {}", exc)
+                logger.error("Docker connection failed: {}", scrub_configured_secrets(str(exc)))
                 self._client = None
                 return False
             self._client = client
@@ -60,7 +61,11 @@ class DockerProvider(BaseProvider):
             await asyncio.to_thread(self._client.ping)
             return {"status": "ok", "provider": self.name}
         except DockerException as exc:
-            return {"status": "error", "provider": self.name, "detail": str(exc)}
+            return {
+                "status": "error",
+                "provider": self.name,
+                "detail": scrub_configured_secrets(str(exc)),
+            }
 
     async def list_resources(self) -> list[dict]:
         if self._client is None:

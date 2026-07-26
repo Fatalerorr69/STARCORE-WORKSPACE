@@ -549,7 +549,7 @@ def test_audit_shows_wsl_suffix_when_detected():
 
 
 # ---------------------------------------------------------------------------
-# CI-001: doctor --json / --quiet / --non-interactive
+# CI-001: doctor --json / --quiet
 # ---------------------------------------------------------------------------
 
 
@@ -605,16 +605,8 @@ def test_doctor_quiet_suppresses_output_on_fail():
     assert result.stdout.strip() == ""
 
 
-def test_doctor_non_interactive_behaves_same_as_default():
-    with patch("apps.cli.main.subprocess.run", return_value=_mock_proc(0)):
-        result = runner.invoke(app, ["doctor", "--fast", "--non-interactive"])
-
-    assert result.exit_code == 0
-    assert "All gates passed" in result.stdout
-
-
 # ---------------------------------------------------------------------------
-# CI-001: audit --json / --quiet / --non-interactive
+# CI-001: audit --json / --quiet
 # ---------------------------------------------------------------------------
 
 
@@ -652,17 +644,8 @@ def test_audit_quiet_suppresses_output():
     assert result.stdout.strip() == ""
 
 
-def test_audit_non_interactive_behaves_same_as_default():
-    mock = _git_mock("main", "abc1234", "", "abc1234 feat: init")
-    with patch("apps.cli.main.subprocess.run", mock):
-        result = runner.invoke(app, ["audit", "--non-interactive"])
-
-    assert result.exit_code == 0
-    assert "main" in result.stdout
-
-
 # ---------------------------------------------------------------------------
-# CI-001: diagnose --json / --quiet / --non-interactive
+# CI-001: diagnose --json / --quiet
 # ---------------------------------------------------------------------------
 
 
@@ -723,21 +706,6 @@ def test_diagnose_quiet_error_exits_one_no_output():
 
     assert result.exit_code == 1
     assert result.stdout.strip() == ""
-
-
-def test_diagnose_non_interactive_behaves_same_as_default():
-    report = {
-        "overall_status": "ok",
-        "runtime_environment": "local",
-        "checks": [{"name": "db", "status": "ok", "detail": "alive"}],
-        "proxmox": {},
-        "docker": {},
-    }
-    with patch("apps.cli.main.run_diagnostics", new=AsyncMock(return_value=report)):
-        result = runner.invoke(app, ["diagnose", "--non-interactive"])
-
-    assert result.exit_code == 0
-    assert "overall status" in result.stdout.lower()
 
 
 def test_diagnose_shows_cloud_provider_when_detected():

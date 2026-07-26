@@ -47,8 +47,10 @@ class ExecutionPlanner:
 
         Returns:
             A list of plan steps, each a mapping with ``provider``,
-            ``resource``, ``kind``, and ``config`` keys, in a valid
-            dependency-respecting execution order.
+            ``resource``, ``kind``, ``config``, and ``depends_on`` keys, in
+            a valid dependency-respecting execution order. ``depends_on`` is
+            carried through so :class:`~blueprints.executor.BlueprintExecutor`
+            can enforce dependency *success*, not just ordering.
 
         Raises:
             ValueError: If any resource declares a dependency on a resource
@@ -62,6 +64,7 @@ class ExecutionPlanner:
                 "resource": resource.name,
                 "kind": resource.kind,
                 "config": resource.config,
+                "depends_on": list(resource.depends_on),
             }
             for resource in ordered_resources
         ]

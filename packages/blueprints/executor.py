@@ -1,5 +1,10 @@
 """
 Blueprint Executor
+
+`depends_on` is a success gate, not just an ordering constraint (ADR-010):
+a step only reaches provider.execute() once every resource it depends on
+has reached TaskStatus.SUCCESS. See Scheduler for the identical contract on
+the concurrent path.
 """
 
 from __future__ import annotations
@@ -24,6 +29,7 @@ class BlueprintExecutor:
 
         tasks: list[Task] = []
         used_providers: set[str] = set()
+        status_by_resource: dict[str, TaskStatus] = {}
 
         for step in plan:
             task = Task(
@@ -33,12 +39,27 @@ class BlueprintExecutor:
                 resource=step["resource"],
                 payload=step["config"],
                 kind=step["kind"],
+                depends_on=list(step.get("depends_on", [])),
             )
             tasks.append(task)
 
             await event_bus.emit(
                 "task.started", {"resource": task.resource, "provider": task.provider}
             )
+
+            blocking = [
+                dep for dep in task.depends_on if status_by_resource.get(dep) != TaskStatus.SUCCESS
+            ]
+            if blocking:
+                logger.warning(
+                    "Dependency of resource '{}' did not succeed ({}), skipping",
+                    task.resource,
+                    ", ".join(blocking),
+                )
+                task.status = TaskStatus.SKIPPED_DEPENDENCY_FAILED
+                status_by_resource[task.resource] = task.status
+                await self._emit_task_completed(task)
+                continue
 
             if step["provider"] not in registry.names():
                 logger.warning(
@@ -47,6 +68,7 @@ class BlueprintExecutor:
                     step["resource"],
                 )
                 task.status = TaskStatus.SKIPPED
+                status_by_resource[task.resource] = task.status
                 await self._emit_task_completed(task)
                 continue
 
@@ -61,6 +83,7 @@ class BlueprintExecutor:
                         step["resource"],
                     )
                     task.status = TaskStatus.FAILED
+                    status_by_resource[task.resource] = task.status
                     await self._emit_task_completed(task)
                     continue
 
@@ -71,6 +94,7 @@ class BlueprintExecutor:
                 logger.exception("Failed to execute task for resource '{}'", step["resource"])
                 task.status = TaskStatus.FAILED
 
+            status_by_resource[task.resource] = task.status
             await self._emit_task_completed(task)
 
         for name in used_providers:

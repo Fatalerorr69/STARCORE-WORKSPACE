@@ -14,4 +14,7 @@ stopWords = [
     "sk-test-key",
     # .env.example: template placeholder, not a real secret
     "change-me-to-a-random-secret",
+    # tests/test_security.py: synthetic password used to prove secrets
+    # never leak into a response body -- not a real credential.
+    "sw33t-and-s3cret-p4ssw0rd",
 ]

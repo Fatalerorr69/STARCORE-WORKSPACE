@@ -53,6 +53,9 @@ jobs:
           STARCORE_DATABASE_URL=sqlite:///./ci-check.db uv run alembic upgrade head
           STARCORE_DATABASE_URL=sqlite:///./ci-check.db uv run alembic check
 
+      - name: Documentation build (mkdocs --strict)
+        run: uv run mkdocs build --strict
+
   docker-build:
     runs-on: ubuntu-latest
     steps:

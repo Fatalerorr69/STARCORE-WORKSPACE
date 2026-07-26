@@ -57,7 +57,9 @@ graphs) instead of hanging.
 (`STARCORE_*` env vars), SQLite persistence with Alembic-tracked schema
 (fresh databases are bootstrapped and stamped automatically; databases
 behind the migration head fail fast at startup), an in-process event bus,
-a plugin manager (`plugins/` directory, `register(context)` convention),
+a plugin manager (`plugins/` directory, `register(context)` convention —
+see [Plugins](plugins.md) for the discovery/import/trust model, which is
+**not sandboxed**),
 deep diagnostics (`/diagnostics`, `starcore diagnose`), API-wide per-IP
 rate limiting (`slowapi`, `/health` exempt), Prometheus metrics
 (`/metrics`, `core/metrics.py` — HTTP request count/latency via
