@@ -38,7 +38,12 @@ services:
     profiles: ["scaffold"]
     environment:
       POSTGRES_USER: starcore
-      POSTGRES_PASSWORD: ${STARCORE_POSTGRES_PASSWORD:?set STARCORE_POSTGRES_PASSWORD in .env before enabling the postgres scaffold service}
+      # `:-` (default to empty), not `:?`: Compose interpolates every
+      # service's environment block even for an inactive profile, so
+      # `:?required` broke commands that never touch this service. The
+      # postgres image itself rejects an empty POSTGRES_PASSWORD at
+      # startup, so that stays the real safety net.
+      POSTGRES_PASSWORD: ${STARCORE_POSTGRES_PASSWORD:-}
       POSTGRES_DB: starcore
     ports:
       - "5432:5432"
