@@ -8,6 +8,25 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **Broken `provider_sdk` import** (`ProviderException` → `ProviderError`): the wrong
+  class name caused every test to fail at collection time with `ImportError`; corrected
+  to `ProviderError`, the actual class in `provider_sdk/exceptions.py`.
+- **`classify_client_platform` marker priority**: script markers (curl, python-httpx,
+  …) are now checked before browser markers so a UA containing both (e.g. `curlchrome`)
+  correctly classifies as `cli-or-script` rather than `browser-desktop`. Found by a
+  Hypothesis property test.
+- Lint and type violations introduced by external PRs in `retry.py`, `timeout.py`,
+  `correlation.py`, and `provider_sdk/__init__.py` (ruff UP035/UP042/UP045/UP041×2/B904/
+  E501/F841/I001; pyright `float | None` narrowing in `execute_with_timeout`).
+
+### Added
+- Tests for four untested modules added by PR #100: `provider_sdk.retry`,
+  `orchestrator.timeout`, `core.correlation`, `core.request_id_middleware` (35 new
+  tests; 531 total, 100% coverage restored).
+
+
+
+### Fixed
 - **Dependency failure semantics now enforced, not just documented** (ADR-010): a task whose dependency finished `FAILED`, `SKIPPED`, or `SKIPPED_DEPENDENCY_FAILED` is itself marked `SKIPPED_DEPENDENCY_FAILED` and never reaches `provider.execute()`, transitively across scheduler waves — in both the sequential (`BlueprintExecutor`) and parallel (`Scheduler`) paths. Previously `depends_on` only gated on the prerequisite having *finished*, not succeeded (flagged as an open question in the 0.1.0 audit, now resolved as a deliberate semantics fix).
 - `docker compose config` (and `docker compose up -d --build api`, the documented non-scaffold workflow) no longer fails when `STARCORE_POSTGRES_PASSWORD` is unset — Compose interpolates every service's environment block at parse time regardless of active profile; switched to a default-to-empty interpolation, with the official postgres image still refusing to start on an empty password if the scaffold profile is actually enabled.
 - `release.yml` quality gate brought to parity with `ci.yml`: was only `ruff check` + `pyright` + `pytest --cov-fail-under=80`, now also runs `uv lock --check`, `pip-audit`, Bandit, gitleaks, `alembic check`, and `mkdocs build --strict`, at the same 100% coverage floor as every other gate.
