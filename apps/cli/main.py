@@ -75,9 +75,6 @@ def doctor(
     quiet: bool = typer.Option(
         False, "--quiet", help="Suppress all output; rely on exit code only."
     ),
-    non_interactive: bool = typer.Option(
-        False, "--non-interactive", help="Disable interactive prompts (safe for CI/cron/systemd)."
-    ),
 ):
     """Run all local quality gates: lint, type-check, security scan, tests.
 
@@ -152,9 +149,6 @@ def audit(
     ),
     quiet: bool = typer.Option(
         False, "--quiet", help="Suppress all output; rely on exit code only."
-    ),
-    non_interactive: bool = typer.Option(
-        False, "--non-interactive", help="Disable interactive prompts (safe for CI/cron/systemd)."
     ),
 ):
     """Show a quick local project state summary: git state, file counts.
@@ -417,9 +411,6 @@ def diagnose(
     ),
     quiet: bool = typer.Option(
         False, "--quiet", help="Suppress all output; rely on exit code only."
-    ),
-    non_interactive: bool = typer.Option(
-        False, "--non-interactive", help="Disable interactive prompts (safe for CI/cron/systemd)."
     ),
 ):
     """Run a deep health/status check of the STARCORE deployment and configured providers.

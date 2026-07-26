@@ -10,6 +10,7 @@ nav:
   - Architecture: architecture.md
   - Installation: installation.md
   - Development: development.md
+  - Plugins: plugins.md
   - Changelog:
       - Sprint 001: changelog/sprint-001.md
       - Sprint 002: changelog/sprint-002.md
