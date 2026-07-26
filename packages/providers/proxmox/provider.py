@@ -8,6 +8,7 @@ import asyncio
 from typing import Any
 
 from core.config import get_settings
+from core.security import scrub_configured_secrets
 from loguru import logger
 from provider_sdk.base import BaseProvider
 from proxmoxer import ProxmoxAPI
@@ -67,7 +68,7 @@ class ProxmoxProvider(BaseProvider):
                 )
                 await asyncio.to_thread(client.version.get)
             except Exception as exc:
-                logger.error("Proxmox connection failed: {}", exc)
+                logger.error("Proxmox connection failed: {}", scrub_configured_secrets(str(exc)))
                 self._client = None
                 return False
             self._client = client
@@ -84,7 +85,11 @@ class ProxmoxProvider(BaseProvider):
             await asyncio.to_thread(self._client.version.get)
             return {"status": "ok", "provider": self.name}
         except Exception as exc:
-            return {"status": "error", "provider": self.name, "detail": str(exc)}
+            return {
+                "status": "error",
+                "provider": self.name,
+                "detail": scrub_configured_secrets(str(exc)),
+            }
 
     async def list_resources(self) -> list[dict]:
         if self._client is None:

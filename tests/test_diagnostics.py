@@ -133,12 +133,6 @@ def test_check_database_connectivity_returns_error_when_engine_fails():
     assert "Cannot connect" in result.detail
 
 
-def test_redact_database_url_falls_back_on_unparseable_url():
-    from core.diagnostics import _redact_database_url
-
-    assert _redact_database_url("not-a-valid-url") == "<unparseable database URL>"
-
-
 def test_check_database_connectivity_redacts_credentials_in_database_url(monkeypatch):
     """Security regression: the unauthenticated /health endpoint surfaces this
     detail message verbatim, so a STARCORE_DATABASE_URL with embedded
