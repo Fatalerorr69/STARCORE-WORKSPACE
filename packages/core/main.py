@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import asyncio
 import hmac
+import re
 import time
+import uuid
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated
@@ -21,6 +23,7 @@ from blueprints.template_resolver import TemplateResolutionError, resolve_templa
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from loguru import logger
 from orchestrator.scheduler import Scheduler
 from prometheus_client import CONTENT_TYPE_LATEST
 from provider_sdk.registry import register_default_providers, registry
@@ -128,6 +131,40 @@ async def _metrics_middleware(request: Request, call_next):
         method=request.method, path=path, status=str(response.status_code)
     ).inc()
     HTTP_REQUEST_DURATION_SECONDS.labels(method=request.method, path=path).observe(duration)
+    return response
+
+
+_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+
+
+def _resolve_request_id(incoming: str | None) -> str:
+    """Accept a caller-supplied X-Request-ID if it looks like a reasonable
+    opaque token, otherwise generate one.
+
+    A malformed or missing header is not an error worth failing the
+    request over -- it just means correlation falls back to a fresh ID,
+    same as if the caller hadn't sent one at all.
+    """
+    if incoming and _REQUEST_ID_PATTERN.fullmatch(incoming):
+        return incoming
+    return str(uuid.uuid4())
+
+
+@app.middleware("http")
+async def _request_id_middleware(request: Request, call_next):
+    """Bind a correlation ID to every log line emitted while handling this
+    request, and echo it back in the response header.
+
+    `logger.contextualize()` is backed by the same `contextvars` machinery
+    `asyncio` itself uses for context propagation, so the bound
+    `request_id` is automatically visible to any coroutine awaited from
+    within this request -- including a `Scheduler.execute()` wave spawned
+    by `POST /blueprints/run?parallel=true` -- with no extra plumbing.
+    """
+    request_id = _resolve_request_id(request.headers.get("x-request-id"))
+    with logger.contextualize(request_id=request_id):
+        response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
     return response
 
 

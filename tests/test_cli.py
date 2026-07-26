@@ -420,6 +420,78 @@ def test_snapshot_rollback_reports_failure():
 
 
 # ---------------------------------------------------------------------------
+# snapshot rollback: dry-run preview shown before confirmation
+# ---------------------------------------------------------------------------
+
+
+def test_snapshot_rollback_preview_shows_config_diff_before_confirmation():
+    preview = _make_task(
+        "success",
+        {
+            "current_status": "running",
+            "config_diff": {"cores": {"current": 4, "after_rollback": 2}},
+        },
+    )
+    with patch("apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)):
+        result = runner.invoke(app, ["snapshot", "rollback", "pve", "101", "snap1"], input="n\n")
+    assert result.exit_code == 0
+    assert "running" in result.stdout
+    assert "cores" in result.stdout
+
+
+def test_snapshot_rollback_preview_reports_no_differences():
+    preview = _make_task("success", {"current_status": "stopped", "config_diff": {}})
+    with patch("apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)):
+        result = runner.invoke(app, ["snapshot", "rollback", "pve", "101", "snap1"], input="n\n")
+    assert result.exit_code == 0
+    assert "No config differences" in result.stdout
+
+
+def test_snapshot_rollback_preview_reports_unavailable_diff():
+    preview = _make_task("success", {"current_status": "running", "config_diff": None})
+    with patch("apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)):
+        result = runner.invoke(app, ["snapshot", "rollback", "pve", "101", "snap1"], input="n\n")
+    assert result.exit_code == 0
+    assert "not available" in result.stdout
+
+
+def test_snapshot_rollback_preview_failure_still_allows_confirmation_prompt():
+    """If the preview action itself fails (e.g. Proxmox unreachable), the
+    rollback flow must still fall through to the confirmation prompt
+    rather than crash or skip it."""
+    preview = _make_task("failed", {"error": "connection refused"})
+    with patch("apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)):
+        result = runner.invoke(app, ["snapshot", "rollback", "pve", "101", "snap1"], input="n\n")
+    assert result.exit_code == 0
+    assert "Could not preview" in result.stdout
+
+
+def test_snapshot_rollback_with_yes_skips_preview():
+    """--yes must skip the preview call entirely, not just the prompt --
+    verified by asserting execute_resource_action was called exactly
+    once (the real rollback), not twice (preview + rollback)."""
+    task = _make_task("success")
+    mock_action = AsyncMock(return_value=task)
+    with patch("apps.cli.main.execute_resource_action", new=mock_action):
+        result = runner.invoke(app, ["snapshot", "rollback", "pve", "101", "snap1", "--yes"])
+    assert result.exit_code == 0
+    assert mock_action.call_count == 1
+    assert mock_action.call_args.args[1] == "snapshot-rollback"
+
+
+def test_snapshot_rollback_accepts_when_confirmed_after_preview():
+    preview = _make_task("success", {"current_status": "running", "config_diff": {}})
+    rollback = _make_task("success")
+    mock_action = AsyncMock(side_effect=[preview, rollback])
+    with patch("apps.cli.main.execute_resource_action", new=mock_action):
+        result = runner.invoke(app, ["snapshot", "rollback", "pve", "101", "snap1"], input="y\n")
+    assert result.exit_code == 0
+    assert mock_action.call_count == 2
+    assert mock_action.call_args_list[0].args[1] == "snapshot-rollback-preview"
+    assert mock_action.call_args_list[1].args[1] == "snapshot-rollback"
+
+
+# ---------------------------------------------------------------------------
 # doctor: all-pass, fast mode, gate failure, long output truncation
 # ---------------------------------------------------------------------------
 

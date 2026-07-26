@@ -49,4 +49,5 @@ nav:
       - ADR-010 Dependency Failure Semantics: adr/ADR-010-dependency-failure-semantics.md
       - ADR-011 Plugin Trust Boundary: adr/ADR-011-plugin-trust-boundary.md
       - ADR-012 API Authentication Model: adr/ADR-012-api-authentication-model.md
+      - ADR-013 Provider Concurrency Policy: adr/ADR-013-provider-concurrency-policy.md
   - Vision (SES): ses/SES-0000-MASTER-INDEX.md

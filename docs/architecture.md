@@ -65,7 +65,11 @@ rate limiting (`slowapi`, `/health` exempt), Prometheus metrics
 (`/metrics`, `core/metrics.py` — HTTP request count/latency via
 middleware, blueprint task outcomes via an event-bus subscription), and
 structured logging (`core/logger.py`; set `STARCORE_LOG_JSON=true` for
-one JSON object per log line, suited for log aggregators).
+one JSON object per log line, suited for log aggregators). Every HTTP
+request is assigned a correlation ID (`X-Request-ID` — accepted from the
+caller if present and well-formed, generated otherwise), bound to every
+log line emitted while handling that request via `logger.contextualize()`
+and echoed back in the response header; see [API Reference](api.md#request-correlation).
 
 **Environment Detection** (`packages/core/environment.py`, ADR-009) — four
 independent checks answering "where and how is this actually running?",

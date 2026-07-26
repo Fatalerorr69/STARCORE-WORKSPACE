@@ -719,6 +719,47 @@ def snapshot_delete(
     console.print(f"[green]Snapshot '{name}' deleted[/green]")
 
 
+def _show_rollback_preview(node: str, vmid: int, name: str, kind: str) -> None:
+    """Print current status and a config diff before a rollback confirmation.
+
+    Best-effort: only shows differences the Proxmox API actually returned
+    for both the current config and the snapshot's config
+    (`ProxmoxProvider._snapshot_rollback_preview`). Never fabricates a
+    diff -- if the API couldn't provide one, says so instead of implying
+    "no changes".
+    """
+    preview = _run_snapshot_action(
+        "snapshot-rollback-preview", node, vmid, kind, snapshot_name=name
+    )
+    if preview.status.value != "success":
+        console.print(
+            "[yellow]Could not preview rollback changes; proceeding to confirmation.[/yellow]"
+        )
+        return
+
+    current_status = preview.result.get("current_status", "unknown")
+    console.print(f"Current status: [bold]{current_status}[/bold]")
+
+    diff = preview.result.get("config_diff")
+    if diff is None:
+        console.print(
+            "[yellow]Config diff not available from this Proxmox host (older version, "
+            "insufficient permissions, or the snapshot has no stored config).[/yellow]"
+        )
+    elif not diff:
+        console.print(
+            "[green]No config differences between current state and this snapshot.[/green]"
+        )
+    else:
+        diff_table = Table(title=f"Config changes rollback would apply ({kind} {vmid})")
+        diff_table.add_column("Field")
+        diff_table.add_column("Current")
+        diff_table.add_column("After rollback")
+        for field, values in diff.items():
+            diff_table.add_row(field, str(values["current"]), str(values["after_rollback"]))
+        console.print(diff_table)
+
+
 @snapshot_app.command("rollback")
 def snapshot_rollback(
     node: str = typer.Argument(..., help="Proxmox node name."),
@@ -729,6 +770,7 @@ def snapshot_rollback(
 ):
     """Roll back a Proxmox VM or LXC container to a snapshot. Discards current state."""
     if not yes:
+        _show_rollback_preview(node, vmid, name, kind)
         confirm = typer.confirm(
             f"Roll back {kind} {vmid} ({node}) to snapshot '{name}'? This discards current state."
         )
