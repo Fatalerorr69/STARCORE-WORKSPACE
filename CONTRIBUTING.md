@@ -21,7 +21,7 @@ uv run ruff format --check .
 uv run ruff check .
 uv run pyright
 uv run pip-audit
-uv run pytest -q
+uv run pytest -q --cov --cov-report=term-missing --cov-fail-under=100
 ```
 
 `make lint` / `make format` / `make test` wrap the same commands.

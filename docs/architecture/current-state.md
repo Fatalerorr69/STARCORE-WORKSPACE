@@ -70,7 +70,7 @@ The Docker provider requires access to the Docker socket. This is effectively ho
 
 ## Known stabilization priorities
 
-1. Verify scheduler failure propagation and dependency semantics with integration and property-based tests.
+1. ~~Verify scheduler failure propagation and dependency semantics with integration and property-based tests.~~ **Completed** — ADR-010 accepted; `depends_on` is a success gate enforced in both `Scheduler` and `BlueprintExecutor`; 12 property-based tests in `tests/test_property_based_dependency_semantics.py` verify all invariants across arbitrary DAG structures.
 2. Verify concurrent provider operations and lifecycle behavior under stress.
 3. Establish explicit provider contracts and capability metadata.
 4. Add packaging/install smoke tests and release artifact validation.
