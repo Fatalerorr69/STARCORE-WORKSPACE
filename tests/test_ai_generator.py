@@ -24,6 +24,7 @@ def _settings(**overrides: Any) -> Settings:
         ai_provider="anthropic",
         ai_base_url=None,
         ai_api_key=None,
+        ai_model=None,
     )
     defaults.update(overrides)
     return Settings(**defaults)
@@ -51,13 +52,31 @@ def test_build_provider_raises_without_base_url():
         _build_provider(_settings(ai_provider="openai-compatible", ai_base_url=None))
 
 
+def test_build_provider_raises_without_ai_model():
+    with pytest.raises(BlueprintGenerationError, match="STARCORE_AI_MODEL"):
+        _build_provider(
+            _settings(
+                ai_provider="openai-compatible",
+                ai_base_url="http://localhost:11434/v1",
+                ai_model=None,
+            )
+        )
+
+
 def test_build_provider_returns_openai_compat_provider():
     from ai.providers.openai_compat import OpenAICompatProvider
 
     provider = _build_provider(
-        _settings(ai_provider="openai-compatible", ai_base_url="http://localhost:11434/v1")
+        _settings(
+            ai_provider="openai-compatible",
+            ai_base_url="http://localhost:11434/v1",
+            ai_model="llama3",
+        )
     )
     assert isinstance(provider, OpenAICompatProvider)
+    # RISK finding fix: the openai-compatible provider must use its own
+    # configured model, never fall back to the Anthropic model name.
+    assert provider._model == "llama3"
 
 
 def test_build_provider_raises_on_unknown_provider():

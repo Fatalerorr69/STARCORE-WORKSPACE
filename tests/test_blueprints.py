@@ -93,6 +93,34 @@ async def test_executor_marks_failed_connect_as_failed():
     assert tasks[0].status == TaskStatus.FAILED
 
 
+async def test_executor_still_attempts_dependent_after_dependency_fails():
+    """Documents current semantics: BlueprintExecutor iterates the
+    topologically-sorted plan unconditionally (executor.py:28-77) and never
+    checks whether an earlier step named in `depends_on` actually succeeded
+    -- `depends_on` is an ordering constraint, not a success gate. Locks in
+    this behavior so a future change to it is deliberate, not accidental.
+    """
+    failing = FakeProvider(connect_result=False)
+    failing.name = "failing"
+    fake = FakeProvider(connect_result=True)
+    registry.register(failing)
+    registry.register(fake)
+
+    blueprint = Blueprint(
+        name="dependency-fail-test",
+        resources=[
+            ResourceSpec(name="a", provider="failing", kind="svc", config={}),
+            ResourceSpec(name="b", provider="fake", kind="svc", config={}, depends_on=["a"]),
+        ],
+    )
+    tasks = await BlueprintExecutor().execute(blueprint)
+
+    by_resource = {t.resource: t for t in tasks}
+    assert by_resource["a"].status == TaskStatus.FAILED
+    assert by_resource["b"].status == TaskStatus.SUCCESS
+    assert fake.executed == ["b"]
+
+
 async def test_executor_skips_unknown_provider():
     blueprint = Blueprint(
         name="unknown-provider-test",

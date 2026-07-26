@@ -236,6 +236,50 @@ async def test_scheduler_marks_task_failed_when_execute_raises():
     assert tasks[0].status == TaskStatus.FAILED
 
 
+async def test_scheduler_still_attempts_dependent_after_dependency_fails():
+    """Documents current semantics, matching BlueprintExecutor: Scheduler
+    tracks wave completion via `completed` (scheduler.py:26-48), which is
+    populated once a task finishes regardless of its outcome -- `depends_on`
+    gates dispatch ordering only, not dependency success. Locks in this
+    behavior so a future change to it is deliberate, not accidental.
+    """
+
+    class _RaisingProvider(BaseProvider):
+        name = "raiser"
+
+        async def connect(self) -> bool:
+            return True
+
+        async def disconnect(self) -> None:
+            pass
+
+        async def health(self) -> dict:
+            return {"status": "ok", "provider": self.name}
+
+        async def list_resources(self) -> list[dict]:
+            return []
+
+        async def execute(self, task) -> None:
+            raise RuntimeError("simulated dependency failure")
+
+    fake = FakeProvider()
+    registry.register(fake)
+    registry.register(_RaisingProvider())
+
+    graph = TaskGraph()
+    a = Task(id="a", provider="raiser", action="create", resource="a")
+    b = Task(id="b", provider="fake", action="create", resource="b", depends_on=["a"])
+    graph.add_task(a)
+    graph.add_task(b)
+
+    tasks = await Scheduler().execute(graph)
+
+    by_id = {t.id: t for t in tasks}
+    assert by_id["a"].status == TaskStatus.FAILED
+    assert by_id["b"].status == TaskStatus.SUCCESS
+    assert fake.order == ["b"]
+
+
 async def test_scheduler_marks_task_failed_when_connect_returns_false():
     """Lines 87-94: connect() returns False → task marked FAILED without calling execute."""
 
