@@ -230,6 +230,8 @@ class ProxmoxProvider(BaseProvider):
             await self._snapshot_delete(task, resource_kind)
         elif action == "snapshot-rollback":
             await self._snapshot_rollback(task, resource_kind)
+        elif action == "snapshot-rollback-preview":
+            await self._snapshot_rollback_preview(task, resource_kind)
         else:
             raise ValueError(f"Unsupported Proxmox action: '{action}'")
 
@@ -425,6 +427,55 @@ class ProxmoxProvider(BaseProvider):
             vmid,
             snapshot_name,
         )
+
+    # Config fields that are metadata about the snapshot itself or
+    # transient runtime state, not meaningful to show as a "this will
+    # change" diff between the current config and a snapshot's config.
+    _SNAPSHOT_DIFF_SKIP_KEYS = frozenset(
+        {"digest", "snapstate", "snaptime", "parent", "description", "vmstate"}
+    )
+
+    async def _snapshot_rollback_preview(self, task, resource_kind: str) -> None:
+        """Best-effort summary of what `snapshot-rollback` would change.
+
+        Compares the resource's current config to the config Proxmox
+        captured in the snapshot, using only fields the API actually
+        returns for both -- never fabricates a diff. If the snapshot's
+        config can't be retrieved (older Proxmox version, permissions, or
+        a config-less snapshot), `config_diff` is `None`; callers must
+        say the preview is unavailable rather than treat that as "no
+        changes".
+        """
+        assert self._client is not None
+        node, vmid = self._require_snapshot_fields(task, need_name=True)
+        snapshot_name = task.payload["snapshot_name"]
+        endpoint = self._resource_endpoint(node, vmid, resource_kind)
+
+        current_config = await asyncio.to_thread(endpoint.config.get) or {}
+        current_status = await asyncio.to_thread(endpoint.status.current.get) or {}
+
+        try:
+            snapshot_config = await asyncio.to_thread(endpoint.snapshot(snapshot_name).config.get)
+        except Exception:
+            snapshot_config = None
+
+        config_diff: dict[str, dict[str, Any]] | None = None
+        if snapshot_config is not None:
+            keys = (set(current_config) | set(snapshot_config)) - self._SNAPSHOT_DIFF_SKIP_KEYS
+            config_diff = {
+                key: {
+                    "current": current_config.get(key),
+                    "after_rollback": snapshot_config.get(key),
+                }
+                for key in sorted(keys)
+                if current_config.get(key) != snapshot_config.get(key)
+            }
+
+        task.result["vmid"] = vmid
+        task.result["node"] = node
+        task.result["snapshot_name"] = snapshot_name
+        task.result["current_status"] = current_status.get("status")
+        task.result["config_diff"] = config_diff
 
     async def _wait_for_task(
         self, node: str, upid: str, timeout: float = 300.0, interval: float = 2.0

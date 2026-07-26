@@ -474,6 +474,99 @@ async def test_proxmox_snapshot_rollback_calls_rollback_endpoint():
     assert task.result["snapshot_name"] == "old-snap"
 
 
+async def test_proxmox_snapshot_rollback_preview_reports_config_diff():
+    from unittest.mock import MagicMock
+
+    from orchestrator.task import Task
+
+    fake_client = MagicMock()
+    endpoint = fake_client.nodes.return_value.qemu.return_value
+    endpoint.config.get.return_value = {"cores": 4, "memory": 4096, "digest": "abc123"}
+    endpoint.status.current.get.return_value = {"status": "running"}
+    endpoint.snapshot.return_value.config.get.return_value = {
+        "cores": 2,
+        "memory": 4096,
+        "digest": "xyz789",
+    }
+
+    provider = ProxmoxProvider()
+    provider._client = fake_client
+
+    task = Task(
+        id="1",
+        provider="proxmox",
+        action="snapshot-rollback-preview",
+        resource="web-vm",
+        payload={"node": "fatalab", "vmid": 105, "snapshot_name": "old-snap"},
+    )
+
+    await provider.execute(task)
+
+    endpoint.snapshot.assert_called_with("old-snap")
+    assert task.result["current_status"] == "running"
+    # digest is a skip key (snapshot metadata, not a meaningful config
+    # change); cores differs, memory doesn't.
+    assert task.result["config_diff"] == {"cores": {"current": 4, "after_rollback": 2}}
+
+
+async def test_proxmox_snapshot_rollback_preview_reports_no_diff_when_configs_match():
+    from unittest.mock import MagicMock
+
+    from orchestrator.task import Task
+
+    fake_client = MagicMock()
+    endpoint = fake_client.nodes.return_value.qemu.return_value
+    endpoint.config.get.return_value = {"cores": 2, "memory": 2048}
+    endpoint.status.current.get.return_value = {"status": "stopped"}
+    endpoint.snapshot.return_value.config.get.return_value = {"cores": 2, "memory": 2048}
+
+    provider = ProxmoxProvider()
+    provider._client = fake_client
+
+    task = Task(
+        id="1",
+        provider="proxmox",
+        action="snapshot-rollback-preview",
+        resource="web-vm",
+        payload={"node": "fatalab", "vmid": 105, "snapshot_name": "same-config"},
+    )
+
+    await provider.execute(task)
+
+    assert task.result["config_diff"] == {}
+
+
+async def test_proxmox_snapshot_rollback_preview_reports_none_when_snapshot_config_unavailable():
+    """Older Proxmox versions / insufficient permissions / config-less
+    snapshots must never produce a fabricated diff -- config_diff must be
+    None, not an empty dict, so callers can distinguish "verified no
+    changes" from "couldn't check"."""
+    from unittest.mock import MagicMock
+
+    from orchestrator.task import Task
+
+    fake_client = MagicMock()
+    endpoint = fake_client.nodes.return_value.qemu.return_value
+    endpoint.config.get.return_value = {"cores": 2}
+    endpoint.status.current.get.return_value = {"status": "stopped"}
+    endpoint.snapshot.return_value.config.get.side_effect = Exception("not available")
+
+    provider = ProxmoxProvider()
+    provider._client = fake_client
+
+    task = Task(
+        id="1",
+        provider="proxmox",
+        action="snapshot-rollback-preview",
+        resource="web-vm",
+        payload={"node": "fatalab", "vmid": 105, "snapshot_name": "old-snap"},
+    )
+
+    await provider.execute(task)
+
+    assert task.result["config_diff"] is None
+
+
 # ---------------------------------------------------------------------------
 # RISK-01 / TD-02 regression tests: provider connect() must be safe under
 # concurrent invocation from multiple orchestration tasks in the same

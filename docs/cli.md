@@ -66,7 +66,7 @@ commands above because it never controlled anything on them).
 | `starcore snapshot create <node> <vmid> <name> [--kind vm\|lxc] [--description]` | Create a snapshot. |
 | `starcore snapshot list <node> <vmid> [--kind vm\|lxc]` | List snapshots. |
 | `starcore snapshot delete <node> <vmid> <name> [--kind vm\|lxc] [--yes/-y]` | Delete a snapshot. Prompts unless `--yes`. |
-| `starcore snapshot rollback <node> <vmid> <name> [--kind vm\|lxc] [--yes/-y]` | Roll back to a snapshot, discarding current state. Prompts unless `--yes`. |
+| `starcore snapshot rollback <node> <vmid> <name> [--kind vm\|lxc] [--yes/-y]` | Roll back to a snapshot, discarding current state. Unless `--yes` is passed, first shows the resource's current status and a config diff (only fields the Proxmox API actually returns for both the current config and the snapshot's config — never a fabricated diff; says so explicitly if the API can't provide one), then prompts for confirmation. |
 
 ## Exit codes
 
