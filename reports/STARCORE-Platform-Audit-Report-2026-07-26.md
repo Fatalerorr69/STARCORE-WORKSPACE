@@ -6,6 +6,18 @@
 **Audit standard:** STARCORE Master Prompt v1.0 (evidence-based; prior audits treated as hypotheses to re-verify, not as ground truth)
 **Auditor role:** Senior reviewer / stabilization engineer (Claude Code)
 
+> **Post-merge note (added during PR #88 review):** `main` advanced by 3
+> commits (including an independently-numbered, unrelated "Sprint 015" —
+> PR #86 — and a v0.1.0 release) while this audit's PR was open. This
+> branch was merged with `main` to resolve the resulting conflicts (a
+> filename collision on `docs/changelog/sprint-015.md`, renumbered to
+> `sprint-016.md` here, and a test-count line in `README.md`). All test
+> counts and validation results below (442 → 447) describe **this
+> session's own contribution in isolation**, measured before that merge,
+> and remain accurate as a historical record of what this audit changed.
+> The actual merged total is **454 tests passing, 100% coverage**, all
+> gates green — see the merge commit and `docs/changelog/sprint-016.md`.
+
 ---
 
 ## 1. Executive Summary
