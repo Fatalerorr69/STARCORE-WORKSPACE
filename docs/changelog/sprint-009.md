@@ -32,7 +32,17 @@ Added 5 Hypothesis property tests to `tests/test_property_based_blueprints.py`:
 | `test_plan_provider_agreement_with_create_graph` | Sequential and parallel plans agree on provider assignments |
 | `test_plan_contains_no_duplicate_names` | No resource appears twice |
 
+### E01 — Pre-commit `pyright` hook fixed
+Replaced the `pyright-python` remote hook (which runs in an isolated environment
+and cannot resolve project packages, producing ~296 false-positive errors) with a
+local hook using `uv run pyright`. Aligns pre-commit with the CI gate and the
+documented `uv run pyright` developer workflow.
+
+### E02 — MkDocs nav: Sprint 009 entry added
+Sprint 009 changelog entry added to `mkdocs.yml` nav (PR #85).
+
 ## Test counts
+
 | Before | After |
 |--------|-------|
 | 361 passed | 366 passed |

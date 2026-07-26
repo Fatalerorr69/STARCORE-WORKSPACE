@@ -1,120 +1,62 @@
-# Sprint 015 — Evidence-Based Audit: Vendor Lock-In Fix, DB URL Redaction, Failure-Propagation Regression Tests
+# Sprint 015 — Fix `starcore health` Stub, `scripts/doctor.py` Parity, ADR-009, Property Tests
 
-**Date:** 2026-07-26
-**Branch:** `claude/vstupni-prompt-report-czz7il`
-**Mode:** Full technical audit (inventory → architecture review → risk review → targeted stabilization → validation → report), per the STARCORE Master Prompt v1.0.
-
-## Starting point
-
-All CI gates were already green before this sprint: `ruff check .`, `pyright`
-(0 errors), `pytest -q --cov --cov-fail-under=100` (442 passed, 100%
-coverage), `pip-audit` (no known vulnerabilities), `bandit -r packages/ apps/
-scripts/ -ll -q` (clean), `uv lock --check`, and `alembic upgrade head &&
-alembic check` against a throwaway database (no drift). This sprint's job was
-to find what a green CI board doesn't catch — semantic/behavioral gaps,
-config bugs, and unauthenticated info-disclosure surfaces — not to reopen
-already-closed risks (RISK-01 provider concurrency and RISK-02 dependency
-ordering, both closed in ADR-001/ADR-002, were re-verified by direct code
-read and left untouched).
+**Date:** 2026-07-25
+**Branch:** `claude/new-session-r91v56`
+**Mode:** MODE 5 — CONTROLLED AUTONOMY
 
 ## Changes
 
-### Fixed: `openai-compatible` AI provider silently sent an Anthropic model name (vendor lock-in bug)
-`packages/ai/generator.py`'s `_build_provider()` passed
-`settings.anthropic_model` (default `"claude-sonnet-5"`) as the `model` field
-for the `openai-compatible` branch too. A user who configured
-`STARCORE_AI_PROVIDER=openai-compatible` and `STARCORE_AI_BASE_URL` for
-Ollama/LM Studio/vLLM/LocalAI, without *also* overriding
-`STARCORE_ANTHROPIC_MODEL`, would silently send `model: "claude-sonnet-5"` to
-their local server and get a model-not-found error — the exact vendor
-coupling ADR-007 states the abstraction eliminates. `tests/test_ai_generator.py`
-only asserted `isinstance(provider, OpenAICompatProvider)`, never the model
-value, so 100% coverage did not catch it.
+### P0 — Fix `starcore health` stub
+`starcore health` unconditionally printed `"System OK"` with zero actual
+checking — the test asserting this behavior confirmed it was doing no work
+at all, unlike `GET /health` (API), which genuinely checks database
+connectivity. An operator running it as a smoke test would get a false "OK"
+even with an unreachable database.
 
-Fix: added an independent `STARCORE_AI_MODEL` setting
-(`packages/core/config.py`), required (like `STARCORE_AI_BASE_URL`) for the
-`openai-compatible` provider with no fallback — there is no universal
-default model name across local-LLM servers, and falling back to an
-Anthropic model name is exactly the bug being fixed. `.env.example`,
-`README.md`, and `docs/installation.md` updated to document it.
+Fixed to call `check_database_connectivity()` (the same check `GET /health`
+uses) and report real status: `"System OK (<detail>)"` on success, exit 0;
+`"System UNHEALTHY: <detail>"` on failure, exit 1.
 
-### Fixed: unauthenticated `GET /health` echoed the raw `STARCORE_DATABASE_URL`, including embedded credentials
-`check_database_connectivity()` (`packages/core/diagnostics.py`) returned
-`f"Connected to {settings.database_url}"` verbatim, and this detail string is
-surfaced by the **public, unauthenticated** `/health` endpoint (by design, so
-container orchestrators can probe it without a credential). The default
-SQLite URL carries no secret, but `STARCORE_DATABASE_URL` is documented as
-freely configurable (e.g. Postgres), and a DSN of the form
-`postgresql://user:password@host/db` would have been disclosed to any
-unauthenticated caller. This violates the platform's own security invariant
-("health/diagnostics endpoints must not disclose sensitive data without
-authorization") and was not caught by any existing test.
+### P1 — `scripts/doctor.py` gate parity + scripts documentation
+The standalone `scripts/doctor.py` (sprint-006) had drifted from
+`starcore doctor` (CLI, sprint-010): it was missing the Bandit SAST gate.
+Added it, matching the CLI version's gate list exactly.
 
-Fix: added `_redact_database_url()`, using SQLAlchemy's
-`URL.render_as_string(hide_password=True)` to mask credentials before they
-reach either `/health` or `/diagnostics`; falls back to a fixed placeholder
-(never the raw input) if the URL can't be parsed. No behavior change for the
-default SQLite URL, which has no credentials to mask.
+`docs/development.md` gained a new "Standalone scripts" section documenting
+both `scripts/doctor.py` and `scripts/health.py` — neither was referenced in
+any documentation before, despite `scripts/health.py` serving a genuinely
+distinct purpose (HTTP health probe of a *running remote* instance) from
+`starcore health` (local process's own database check, no HTTP).
 
-### New regression tests: dependent tasks are still attempted after a declared dependency fails
-Neither `BlueprintExecutor` (sequential) nor `Scheduler` (parallel) checks
-whether a resource's `depends_on` prerequisite actually *succeeded* before
-attempting the dependent — both only gate on the prerequisite having
-*finished* (`scheduler.py`'s `completed` set, `executor.py`'s unconditional
-plan iteration). This is consistent between the two execution paths (no
-divergence bug) and is unchanged by this sprint, but it was previously
-unverified by any test and undocumented outside the source itself — a
-regression could have silently flipped this behavior either way. Added one
-test per execution path
-(`test_executor_still_attempts_dependent_after_dependency_fails`,
-`test_scheduler_still_attempts_dependent_after_dependency_fails`) that locks
-in and documents the current, verified behavior. See the audit report's risk
-matrix (RISK-05) for the open product question this raises (should a
-dependent be skipped when its dependency fails?) — deliberately left as a
-recommendation, not a unilateral semantics change, since it's a product
-decision, not a bug.
+### P2 — `docs/architecture.md`: add environment detection
+The architecture doc had zero mention of `packages/core/environment.py`
+despite it growing to four functions wired into two CLI commands and one API
+endpoint across sprint-013/014. Added an "Environment Detection" entry to
+the Key Components section.
 
-### Fixed: stale README claim about `create_all()` behavior
-`README.md`'s "What's Planned, Not Built Yet" table described pre-ADR-005
-behavior ("create_all() still runs on app start for dev convenience"). Actual
-behavior (`packages/core/database.py`, ADR-005): `create_all()` runs exactly
-once, only on a genuinely fresh/untracked database, and the app fails fast on
-startup if an existing database's revision doesn't match the migration head.
-Corrected; test count in the same table updated 442 → 447.
+### P3 — ADR-009: Environment Detection
+`docs/adr/ADR-009-environment-detection.md` documents the four-check design
+from sprint-013/014: the cost/wiring table (which check goes where and why),
+the fast/local vs. deep/networked split rationale, `detect_cloud_provider()`'s
+never-raises design, and alternatives considered (a single "get everything"
+function, IMDSv2-only AWS detection).
 
-## New tests (5)
+### P4 — Property-based tests for `environment.py`
+New `tests/test_property_based_environment.py` — 6 Hypothesis tests:
 
-| Test | File | Protects against |
-|---|---|---|
-| `test_build_provider_raises_without_ai_model` | `test_ai_generator.py` | Missing `STARCORE_AI_MODEL` silently falling back instead of failing loudly |
-| `test_build_provider_returns_openai_compat_provider` (extended) | `test_ai_generator.py` | Regression of the vendor lock-in fix — asserts `provider._model == "llama3"`, not just `isinstance` |
-| `test_redact_database_url_falls_back_on_unparseable_url` | `test_diagnostics.py` | Unparseable DSN ever reaching a response body raw |
-| `test_check_database_connectivity_redacts_credentials_in_database_url` | `test_diagnostics.py` | Credential leakage regression in the shared `/health` + `/diagnostics` detail message |
-| `test_executor_still_attempts_dependent_after_dependency_fails` | `test_blueprints.py` | Silent, undocumented change to failure-propagation semantics (sequential path) |
-| `test_scheduler_still_attempts_dependent_after_dependency_fails` | `test_scheduler.py` | Same, concurrent path |
-
-(Table lists 6 rows because one existing test was extended in place rather
-than duplicated; net new test functions: 5, 442 → 447.)
-
-## Validations run
-
-- `uv sync --extra dev` — clean
-- `uv run ruff check .` — all checks passed (before and after changes)
-- `uv run pyright` — 0 errors, 0 warnings (before and after changes)
-- `uv run pytest -q --cov --cov-report=term-missing --cov-fail-under=100` — 447 passed, 100% coverage
-- `uv run pip-audit` — no known vulnerabilities
-- `uv run bandit -r packages/ apps/ scripts/ -ll -q` — clean
-- `uv lock --check` — resolved, no drift
-- `alembic upgrade head && alembic check` against a throwaway SQLite database — no new upgrade operations detected
+| Test | Invariant |
+|------|-----------|
+| `classify_client_platform` never raises, always returns a known bucket | for any string or `None` |
+| `classify_client_platform` is case-insensitive | upper/lower/mixed give the same result |
+| Any User-Agent containing a mobile marker → `browser-mobile` | for arbitrary prefix/suffix noise |
+| Any User-Agent containing a script marker (no mobile marker) → `cli-or-script` | for arbitrary prefix/suffix noise |
+| `detect_os_platform`'s `is_wsl` matches `/proc/version` content exactly | for arbitrary content + injected "microsoft" |
+| `detect_os_platform` always returns exactly `{system, release, is_wsl}` | for any system/release combination |
 
 ## Test counts
-
 | Before | After |
 |--------|-------|
-| 442 passed | 447 passed |
+| 442 passed | 449 passed |
 | 100% coverage | 100% coverage |
 | 0 pyright errors | 0 pyright errors |
 | bandit clean | bandit clean |
-
-See `reports/STARCORE-Platform-Audit-Report-2026-07-26.md` for the full
-inventory, architecture review, and risk matrix.

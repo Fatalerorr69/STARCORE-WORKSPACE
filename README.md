@@ -2,7 +2,7 @@
 
 **AI-Powered Infrastructure Operating Platform**
 
-![Version](https://img.shields.io/badge/version-0.1.0--dev-blue)
+![Version](https://img.shields.io/badge/version-0.1.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![Status](https://img.shields.io/badge/status-active--development-orange)
 
@@ -34,7 +34,7 @@ This README reflects the **actual current state of the codebase**, not the long-
 | Observability | Done | GET /metrics — Prometheus text format, authenticated; structured loguru logging (STARCORE_LOG_JSON) |
 | Environment Detection | Done | starcore audit/doctor/diagnose and GET /diagnostics report runtime_environment (proxmox-host / container / local), OS platform (incl. WSL), cloud provider (AWS/GCP/Azure, diagnose only), and calling-client platform (browser/mobile/CLI, GET /diagnostics only) |
 | Security | Done | Bandit SAST + gitleaks secret scanning on every PR and nightly; pip-audit dependency vulnerability scan |
-| Tests | 447 passing | ruff, pyright, pytest (100% coverage floor, incl. Hypothesis property tests), pre-commit, CI on every PR |
+| Tests | PLACEHOLDER passing | ruff, pyright, pytest (100% coverage floor, incl. Hypothesis property tests), pre-commit, CI on every PR |
 
 ## What's Planned, Not Built Yet
 
