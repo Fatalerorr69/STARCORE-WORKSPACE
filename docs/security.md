@@ -67,7 +67,10 @@ line (see [Secret redaction](#secret-redaction) above). A provider
 instance is a long-lived singleton reused across every task targeting it;
 `connect()` is guarded by a per-instance `asyncio.Lock` so concurrent
 scheduler-wave calls establish the connection at most once — see
-[ADR-002](adr/ADR-002-provider-lifecycle.md).
+[ADR-002](adr/ADR-002-provider-lifecycle.md). `execute()` itself is not
+rate-limited across a wave; see
+[ADR-013](adr/ADR-013-provider-concurrency-policy.md) for why, and the
+concrete conditions that would change that.
 
 ## Container
 
