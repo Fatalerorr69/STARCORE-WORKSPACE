@@ -31,6 +31,24 @@ def test_save_and_get_run_roundtrip():
         session.close()
 
 
+def test_save_and_get_run_persists_skipped_dependency_failed_status():
+    """SKIPPED_DEPENDENCY_FAILED (ADR-010) must round-trip through the
+    plain String status column like every other TaskStatus value."""
+    task = Task(
+        id="t1", provider="fake", action="create", resource="thing", depends_on=["upstream"]
+    )
+    task.status = TaskStatus.SKIPPED_DEPENDENCY_FAILED
+
+    session = get_session()
+    try:
+        record = save_run(session, "demo-skip", "1.0", False, [task])
+        fetched = get_run(session, record.id)
+        assert fetched is not None
+        assert fetched.tasks[0].status == TaskStatus.SKIPPED_DEPENDENCY_FAILED.value
+    finally:
+        session.close()
+
+
 def test_list_runs_includes_saved_run():
     session = get_session()
     try:

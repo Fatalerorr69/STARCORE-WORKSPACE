@@ -93,12 +93,10 @@ async def test_executor_marks_failed_connect_as_failed():
     assert tasks[0].status == TaskStatus.FAILED
 
 
-async def test_executor_still_attempts_dependent_after_dependency_fails():
-    """Documents current semantics: BlueprintExecutor iterates the
-    topologically-sorted plan unconditionally (executor.py:28-77) and never
-    checks whether an earlier step named in `depends_on` actually succeeded
-    -- `depends_on` is an ordering constraint, not a success gate. Locks in
-    this behavior so a future change to it is deliberate, not accidental.
+async def test_executor_skips_dependent_after_dependency_fails():
+    """ADR-010: depends_on is a success gate, not just an ordering
+    constraint. BlueprintExecutor must never call provider.execute() for a
+    resource whose declared dependency did not reach SUCCESS.
     """
     failing = FakeProvider(connect_result=False)
     failing.name = "failing"
@@ -117,8 +115,116 @@ async def test_executor_still_attempts_dependent_after_dependency_fails():
 
     by_resource = {t.resource: t for t in tasks}
     assert by_resource["a"].status == TaskStatus.FAILED
+    assert by_resource["b"].status == TaskStatus.SKIPPED_DEPENDENCY_FAILED
+    assert fake.executed == []
+
+
+async def test_executor_skips_transitively_through_a_dependency_chain():
+    """A depends on nothing and fails; B depends on A; C depends on B.
+    Both B and C must be skipped -- SKIPPED_DEPENDENCY_FAILED must
+    propagate transitively, not just one hop.
+    """
+    failing = FakeProvider(connect_result=False)
+    failing.name = "failing"
+    fake = FakeProvider(connect_result=True)
+    registry.register(failing)
+    registry.register(fake)
+
+    blueprint = Blueprint(
+        name="transitive-dependency-fail-test",
+        resources=[
+            ResourceSpec(name="a", provider="failing", kind="svc", config={}),
+            ResourceSpec(name="b", provider="fake", kind="svc", config={}, depends_on=["a"]),
+            ResourceSpec(name="c", provider="fake", kind="svc", config={}, depends_on=["b"]),
+        ],
+    )
+    tasks = await BlueprintExecutor().execute(blueprint)
+
+    by_resource = {t.resource: t for t in tasks}
+    assert by_resource["a"].status == TaskStatus.FAILED
+    assert by_resource["b"].status == TaskStatus.SKIPPED_DEPENDENCY_FAILED
+    assert by_resource["c"].status == TaskStatus.SKIPPED_DEPENDENCY_FAILED
+    assert fake.executed == []
+
+
+async def test_executor_runs_dependent_when_dependency_succeeds():
+    """Sanity check for the ADR-010 gate: a dependent must still run
+    normally when its dependency actually succeeds.
+    """
+    fake = FakeProvider(connect_result=True)
+    registry.register(fake)
+
+    blueprint = Blueprint(
+        name="dependency-success-test",
+        resources=[
+            ResourceSpec(name="a", provider="fake", kind="svc", config={}),
+            ResourceSpec(name="b", provider="fake", kind="svc", config={}, depends_on=["a"]),
+        ],
+    )
+    tasks = await BlueprintExecutor().execute(blueprint)
+
+    by_resource = {t.resource: t for t in tasks}
+    assert by_resource["a"].status == TaskStatus.SUCCESS
     assert by_resource["b"].status == TaskStatus.SUCCESS
-    assert fake.executed == ["b"]
+    assert fake.executed == ["a", "b"]
+
+
+async def test_executor_skips_dependent_when_dependency_itself_skipped_for_unknown_provider():
+    """A dependency that is SKIPPED (unknown provider) must also block its
+    dependent -- SKIPPED_DEPENDENCY_FAILED gates on "not SUCCESS", not
+    specifically on FAILED.
+    """
+    fake = FakeProvider(connect_result=True)
+    registry.register(fake)
+
+    blueprint = Blueprint(
+        name="dependency-unknown-provider-test",
+        resources=[
+            ResourceSpec(name="a", provider="does-not-exist", kind="svc", config={}),
+            ResourceSpec(name="b", provider="fake", kind="svc", config={}, depends_on=["a"]),
+        ],
+    )
+    tasks = await BlueprintExecutor().execute(blueprint)
+
+    by_resource = {t.resource: t for t in tasks}
+    assert by_resource["a"].status == TaskStatus.SKIPPED
+    assert by_resource["b"].status == TaskStatus.SKIPPED_DEPENDENCY_FAILED
+    assert fake.executed == []
+
+
+async def test_executor_skips_convergence_point_of_diamond_when_one_branch_fails():
+    """Diamond graph: base -> {left, right} -> tip. `left` fails; `right`
+    succeeds. `tip` depends on both, so it must be skipped even though one
+    of its two dependencies succeeded -- a dependent needs ALL declared
+    dependencies to succeed, not just one.
+    """
+    failing = FakeProvider(connect_result=False)
+    failing.name = "failing"
+    fake = FakeProvider(connect_result=True)
+    registry.register(failing)
+    registry.register(fake)
+
+    blueprint = Blueprint(
+        name="diamond-partial-failure-test",
+        resources=[
+            ResourceSpec(name="base", provider="fake", kind="svc", config={}),
+            ResourceSpec(
+                name="left", provider="failing", kind="svc", config={}, depends_on=["base"]
+            ),
+            ResourceSpec(name="right", provider="fake", kind="svc", config={}, depends_on=["base"]),
+            ResourceSpec(
+                name="tip", provider="fake", kind="svc", config={}, depends_on=["left", "right"]
+            ),
+        ],
+    )
+    tasks = await BlueprintExecutor().execute(blueprint)
+
+    by_resource = {t.resource: t for t in tasks}
+    assert by_resource["base"].status == TaskStatus.SUCCESS
+    assert by_resource["left"].status == TaskStatus.FAILED
+    assert by_resource["right"].status == TaskStatus.SUCCESS
+    assert by_resource["tip"].status == TaskStatus.SKIPPED_DEPENDENCY_FAILED
+    assert fake.executed == ["base", "right"]
 
 
 async def test_executor_skips_unknown_provider():

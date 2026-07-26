@@ -39,6 +39,7 @@ STATUS_COLORS = {
     "success": "green",
     "failed": "red",
     "skipped": "yellow",
+    "skipped_dependency_failed": "yellow",
     "running": "cyan",
     "pending": "white",
 }

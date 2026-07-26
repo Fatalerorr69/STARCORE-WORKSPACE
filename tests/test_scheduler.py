@@ -236,12 +236,10 @@ async def test_scheduler_marks_task_failed_when_execute_raises():
     assert tasks[0].status == TaskStatus.FAILED
 
 
-async def test_scheduler_still_attempts_dependent_after_dependency_fails():
-    """Documents current semantics, matching BlueprintExecutor: Scheduler
-    tracks wave completion via `completed` (scheduler.py:26-48), which is
-    populated once a task finishes regardless of its outcome -- `depends_on`
-    gates dispatch ordering only, not dependency success. Locks in this
-    behavior so a future change to it is deliberate, not accidental.
+async def test_scheduler_skips_dependent_after_dependency_fails():
+    """ADR-010: depends_on is a success gate, not just an ordering
+    constraint. Scheduler must never call provider.execute() for a task
+    whose declared dependency did not reach SUCCESS.
     """
 
     class _RaisingProvider(BaseProvider):
@@ -276,8 +274,170 @@ async def test_scheduler_still_attempts_dependent_after_dependency_fails():
 
     by_id = {t.id: t for t in tasks}
     assert by_id["a"].status == TaskStatus.FAILED
+    assert by_id["b"].status == TaskStatus.SKIPPED_DEPENDENCY_FAILED
+    assert fake.order == []
+
+
+async def test_scheduler_skips_transitively_through_a_dependency_chain():
+    """A fails; B depends on A; C depends on B. Both B and C must be
+    skipped in the same run -- propagation must not stop after one hop,
+    even though B and C are dispatched in different waves.
+    """
+
+    class _RaisingProvider(BaseProvider):
+        name = "raiser"
+
+        async def connect(self) -> bool:
+            return True
+
+        async def disconnect(self) -> None:
+            pass
+
+        async def health(self) -> dict:
+            return {"status": "ok", "provider": self.name}
+
+        async def list_resources(self) -> list[dict]:
+            return []
+
+        async def execute(self, task) -> None:
+            raise RuntimeError("simulated dependency failure")
+
+    fake = FakeProvider()
+    registry.register(fake)
+    registry.register(_RaisingProvider())
+
+    graph = TaskGraph()
+    a = Task(id="a", provider="raiser", action="create", resource="a")
+    b = Task(id="b", provider="fake", action="create", resource="b", depends_on=["a"])
+    c = Task(id="c", provider="fake", action="create", resource="c", depends_on=["b"])
+    graph.add_task(a)
+    graph.add_task(b)
+    graph.add_task(c)
+
+    tasks = await Scheduler().execute(graph)
+
+    by_id = {t.id: t for t in tasks}
+    assert by_id["a"].status == TaskStatus.FAILED
+    assert by_id["b"].status == TaskStatus.SKIPPED_DEPENDENCY_FAILED
+    assert by_id["c"].status == TaskStatus.SKIPPED_DEPENDENCY_FAILED
+    assert fake.order == []
+
+
+async def test_scheduler_skips_dependent_with_multiple_failed_dependencies():
+    """A dependent with two failed dependencies must still be skipped
+    exactly once, not raise or double-dispatch."""
+
+    class _RaisingProvider(BaseProvider):
+        name = "raiser"
+
+        async def connect(self) -> bool:
+            return True
+
+        async def disconnect(self) -> None:
+            pass
+
+        async def health(self) -> dict:
+            return {"status": "ok", "provider": self.name}
+
+        async def list_resources(self) -> list[dict]:
+            return []
+
+        async def execute(self, task) -> None:
+            raise RuntimeError("simulated dependency failure")
+
+    fake = FakeProvider()
+    registry.register(fake)
+    registry.register(_RaisingProvider())
+
+    graph = TaskGraph()
+    a = Task(id="a", provider="raiser", action="create", resource="a")
+    b = Task(id="b", provider="raiser", action="create", resource="b")
+    c = Task(id="c", provider="fake", action="create", resource="c", depends_on=["a", "b"])
+    graph.add_task(a)
+    graph.add_task(b)
+    graph.add_task(c)
+
+    tasks = await Scheduler().execute(graph)
+
+    by_id = {t.id: t for t in tasks}
+    assert by_id["a"].status == TaskStatus.FAILED
+    assert by_id["b"].status == TaskStatus.FAILED
+    assert by_id["c"].status == TaskStatus.SKIPPED_DEPENDENCY_FAILED
+    assert fake.order == []
+
+
+async def test_scheduler_runs_dependent_when_dependency_succeeds():
+    """Sanity check for the ADR-010 gate: a dependent must still run
+    normally, in the same wave-ordering as before, when its dependency
+    actually succeeds.
+    """
+    fake = FakeProvider()
+    registry.register(fake)
+
+    graph = TaskGraph()
+    a = Task(id="a", provider="fake", action="create", resource="a")
+    b = Task(id="b", provider="fake", action="create", resource="b", depends_on=["a"])
+    graph.add_task(a)
+    graph.add_task(b)
+
+    tasks = await Scheduler().execute(graph)
+
+    by_id = {t.id: t for t in tasks}
+    assert by_id["a"].status == TaskStatus.SUCCESS
     assert by_id["b"].status == TaskStatus.SUCCESS
-    assert fake.order == ["b"]
+    assert fake.order.index("a") < fake.order.index("b")
+
+
+async def test_scheduler_skips_convergence_point_of_diamond_when_one_branch_fails():
+    """Diamond graph: base -> {left, right} -> tip, across two waves. `left`
+    fails; `right` succeeds. `tip` depends on both, so it must be skipped
+    even though one of its two dependencies succeeded.
+    """
+
+    class _RaisingProvider(BaseProvider):
+        name = "raiser"
+
+        async def connect(self) -> bool:
+            return True
+
+        async def disconnect(self) -> None:
+            pass
+
+        async def health(self) -> dict:
+            return {"status": "ok", "provider": self.name}
+
+        async def list_resources(self) -> list[dict]:
+            return []
+
+        async def execute(self, task) -> None:
+            raise RuntimeError("simulated dependency failure")
+
+    fake = FakeProvider()
+    registry.register(fake)
+    registry.register(_RaisingProvider())
+
+    graph = TaskGraph()
+    base = Task(id="base", provider="fake", action="create", resource="base")
+    left = Task(id="left", provider="raiser", action="create", resource="left", depends_on=["base"])
+    right = Task(
+        id="right", provider="fake", action="create", resource="right", depends_on=["base"]
+    )
+    tip = Task(
+        id="tip", provider="fake", action="create", resource="tip", depends_on=["left", "right"]
+    )
+    graph.add_task(base)
+    graph.add_task(left)
+    graph.add_task(right)
+    graph.add_task(tip)
+
+    tasks = await Scheduler().execute(graph)
+
+    by_id = {t.id: t for t in tasks}
+    assert by_id["base"].status == TaskStatus.SUCCESS
+    assert by_id["left"].status == TaskStatus.FAILED
+    assert by_id["right"].status == TaskStatus.SUCCESS
+    assert by_id["tip"].status == TaskStatus.SKIPPED_DEPENDENCY_FAILED
+    assert fake.order == ["base", "right"]
 
 
 async def test_scheduler_marks_task_failed_when_connect_returns_false():
