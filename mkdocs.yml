@@ -14,6 +14,7 @@ nav:
   - API Reference: api.md
   - Security: security.md
   - Plugins: plugins.md
+  - Test Matrix: test-matrix.md
   - Changelog:
       - Sprint 001: changelog/sprint-001.md
       - Sprint 002: changelog/sprint-002.md

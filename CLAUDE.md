@@ -150,6 +150,7 @@ uv run bandit -r packages/ apps/ scripts/ -ll -q
 # gitleaks secret scanning (via gitleaks/gitleaks-action, not a local uv command)
 uv run pytest -q --cov --cov-report=term-missing --cov-fail-under=100
 uv run alembic upgrade head && uv run alembic check   # against a throwaway DB, see docs/development.md
+uv run mkdocs build --strict
 ```
 
 CI also builds the Docker image and smoke-tests `GET /health`. A nightly workflow
