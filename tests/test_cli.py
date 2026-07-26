@@ -432,9 +432,7 @@ def test_snapshot_rollback_preview_shows_config_diff_before_confirmation():
             "config_diff": {"cores": {"current": 4, "after_rollback": 2}},
         },
     )
-    with patch(
-        "apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)
-    ):
+    with patch("apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)):
         result = runner.invoke(app, ["snapshot", "rollback", "pve", "101", "snap1"], input="n\n")
     assert result.exit_code == 0
     assert "running" in result.stdout
@@ -443,9 +441,7 @@ def test_snapshot_rollback_preview_shows_config_diff_before_confirmation():
 
 def test_snapshot_rollback_preview_reports_no_differences():
     preview = _make_task("success", {"current_status": "stopped", "config_diff": {}})
-    with patch(
-        "apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)
-    ):
+    with patch("apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)):
         result = runner.invoke(app, ["snapshot", "rollback", "pve", "101", "snap1"], input="n\n")
     assert result.exit_code == 0
     assert "No config differences" in result.stdout
@@ -453,9 +449,7 @@ def test_snapshot_rollback_preview_reports_no_differences():
 
 def test_snapshot_rollback_preview_reports_unavailable_diff():
     preview = _make_task("success", {"current_status": "running", "config_diff": None})
-    with patch(
-        "apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)
-    ):
+    with patch("apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)):
         result = runner.invoke(app, ["snapshot", "rollback", "pve", "101", "snap1"], input="n\n")
     assert result.exit_code == 0
     assert "not available" in result.stdout
@@ -466,9 +460,7 @@ def test_snapshot_rollback_preview_failure_still_allows_confirmation_prompt():
     rollback flow must still fall through to the confirmation prompt
     rather than crash or skip it."""
     preview = _make_task("failed", {"error": "connection refused"})
-    with patch(
-        "apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)
-    ):
+    with patch("apps.cli.main.execute_resource_action", new=AsyncMock(return_value=preview)):
         result = runner.invoke(app, ["snapshot", "rollback", "pve", "101", "snap1"], input="n\n")
     assert result.exit_code == 0
     assert "Could not preview" in result.stdout
