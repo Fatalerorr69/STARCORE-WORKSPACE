@@ -19,6 +19,16 @@ A per-IP request limit (`STARCORE_RATE_LIMIT_PER_MINUTE`, default 60,
 `0` disables it) applies to every route except `/health`. See
 [ADR-003](adr/ADR-003-rate-limiting.md).
 
+## Request correlation
+
+Every response carries an `X-Request-ID` header. If the request supplied
+one (alphanumeric/hyphen/underscore, 1–128 characters), it's echoed back
+unchanged; otherwise a UUID4 is generated. The same ID is bound to every
+structured log line emitted while handling that request — grep your logs
+for it (or filter on `extra.request_id` in JSON mode,
+`STARCORE_LOG_JSON=true`) to see everything one request touched, including
+provider calls made inside a `?parallel=true` blueprint run.
+
 ## Public routes (no `X-API-Key` required)
 
 | Method & path | Description |
