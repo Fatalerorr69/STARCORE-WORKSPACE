@@ -10,6 +10,13 @@ services:
       STARCORE_DATABASE_URL: sqlite:////data/starcore.db
     volumes:
       - starcore-data:/data
+      # Required for the Docker provider (packages/providers/docker) to
+      # manage containers on the host. This grants the api container
+      # effectively root-equivalent control of the host: anyone with
+      # STARCORE_API_KEY can, via the Docker provider, create a
+      # privileged container that mounts the host filesystem. Treat the
+      # API key with the same care as host root credentials in any
+      # deployment where this service is enabled.
       - /var/run/docker.sock:/var/run/docker.sock
     group_add:
       - "${DOCKER_GID}"
