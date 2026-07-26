@@ -91,6 +91,37 @@ STARCORE_DATABASE_URL=sqlite:///./ci-check.db uv run alembic check
 rm ci-check.db
 ```
 
+### Rollback procedure
+
+Every migration in `migrations/versions/` is expected to implement both
+`upgrade()` and `downgrade()` (`tests/test_migrations.py` exercises both
+directions for the initial schema). To roll a database back one revision:
+
+```bash
+uv run alembic downgrade -1
+```
+
+or to a specific revision:
+
+```bash
+uv run alembic downgrade <revision_id>   # uv run alembic history to list revisions
+```
+
+**Back up the database file before downgrading anything that isn't a
+throwaway/CI database** — `downgrade()` runs real `DROP`/`ALTER`
+statements and Alembic does not snapshot data for you. For the default
+SQLite deployment this is just `cp data/starcore.db data/starcore.db.bak`;
+for any other backend, use that backend's own backup mechanism. After a
+downgrade, restart the STARCORE process: `init_db()`'s startup check
+compares the database's revision against the migration head baked into
+the *running* code, so a downgraded database will correctly make a
+newer-than-downgrade STARCORE build fail fast (`RuntimeError`) rather than
+run against a schema it doesn't recognize — that's the same fail-fast
+behavior `_ensure_schema_at_head()` applies to a stale-forward database,
+applied symmetrically to a stale-backward one. If you need the older code
+running against the downgraded schema too, redeploy the matching older
+build alongside the downgrade.
+
 ## Documentation
 
 This site is built with MkDocs Material:
