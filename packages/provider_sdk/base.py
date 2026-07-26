@@ -65,10 +65,10 @@ class BaseProvider(ABC):
     @abstractmethod
     async def connect(self) -> bool:
         """Connect to provider.
-        
+
         Returns:
             True if connected successfully, False otherwise.
-        
+
         Notes:
             - Subclasses should acquire _connect_lock before mutating connection state
             - Should be idempotent: calling multiple times should be safe
@@ -82,7 +82,7 @@ class BaseProvider(ABC):
     @abstractmethod
     async def health(self) -> dict[str, Any]:
         """Return provider health.
-        
+
         Returns:
             Dict with provider health status (structure provider-specific).
         """
@@ -90,7 +90,7 @@ class BaseProvider(ABC):
     @abstractmethod
     async def list_resources(self) -> list[dict]:
         """List managed resources.
-        
+
         Returns:
             List of resource dicts (structure provider-specific).
         """
@@ -98,10 +98,10 @@ class BaseProvider(ABC):
     @abstractmethod
     async def execute(self, task) -> None:
         """Execute orchestration task.
-        
+
         Args:
             task: Task object with provider, action, resource, payload, kind.
-        
+
         Notes:
             - Should set task.status and task.result
             - Should not raise exceptions (handle internally, log, and set status)

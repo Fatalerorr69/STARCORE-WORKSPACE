@@ -18,9 +18,7 @@ from orchestrator.timeout import TaskTimeoutError, TimeoutConfig, TimeoutStrateg
 _POSITIVE_FLOAT = st.floats(
     min_value=0.001, max_value=1000.0, allow_nan=False, allow_infinity=False
 )
-_NON_POSITIVE_FLOAT = st.floats(
-    max_value=0.0, allow_nan=False, allow_infinity=False
-)
+_NON_POSITIVE_FLOAT = st.floats(max_value=0.0, allow_nan=False, allow_infinity=False)
 _TASK_ID = st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789-_", min_size=1, max_size=40)
 _RESOURCE = st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789-_", min_size=1, max_size=40)
 
@@ -81,9 +79,7 @@ def test_task_timeout_error_str_contains_all_fields(
 
 
 @given(task_id=_TASK_ID, resource=_RESOURCE, timeout=_POSITIVE_FLOAT)
-def test_task_timeout_error_is_exception(
-    task_id: str, resource: str, timeout: float
-) -> None:
+def test_task_timeout_error_is_exception(task_id: str, resource: str, timeout: float) -> None:
     """TaskTimeoutError is always an Exception subclass and can be raised/caught."""
     err = TaskTimeoutError(task_id, resource, timeout)
     assert isinstance(err, Exception)
@@ -105,8 +101,7 @@ def test_task_timeout_error_is_exception(
 def test_execute_with_timeout_disabled_always_passes_through(
     timeout: float | None, value: int
 ) -> None:
-    """When timeout is disabled (None or <= 0), execute_with_timeout always returns the coro result.
-    """
+    """When timeout is disabled (None or <= 0), execute_with_timeout returns the coro result."""
     from orchestrator.timeout import execute_with_timeout
 
     async def constant() -> int:

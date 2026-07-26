@@ -24,9 +24,7 @@ class TaskTimeoutError(Exception):
         self.task_id = task_id
         self.resource = resource
         self.timeout = timeout
-        super().__init__(
-            f"Task {task_id} (resource='{resource}') exceeded timeout of {timeout}s"
-        )
+        super().__init__(f"Task {task_id} (resource='{resource}') exceeded timeout of {timeout}s")
 
 
 class TimeoutStrategy(StrEnum):
@@ -86,10 +84,7 @@ async def execute_with_timeout(
     timeout: float = config.timeout_seconds  # type: ignore[assignment]  # is_enabled() guarantees non-None
 
     try:
-        logger.debug(
-            f"Executing task {task_id} (resource='{resource}') "
-            f"with timeout {timeout}s"
-        )
+        logger.debug(f"Executing task {task_id} (resource='{resource}') with timeout {timeout}s")
         result = await asyncio.wait_for(coro, timeout=timeout)
         return result
     except TimeoutError:
@@ -109,9 +104,7 @@ async def execute_with_timeout(
             except TimeoutError:
                 raise TaskTimeoutError(task_id, resource, timeout) from None
         elif config.strategy == TimeoutStrategy.IGNORE:
-            logger.warning(
-                f"Ignoring timeout for task {task_id} (strategy=IGNORE), continuing..."
-            )
+            logger.warning(f"Ignoring timeout for task {task_id} (strategy=IGNORE), continuing...")
             return await coro
         else:
             raise ValueError(f"Unknown timeout strategy: {config.strategy}") from None

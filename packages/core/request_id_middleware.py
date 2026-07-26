@@ -15,7 +15,7 @@ from .correlation import contextualize_request, resolve_request_id
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
     """Middleware that binds X-Request-ID to all requests.
-    
+
     - Accepts caller-supplied X-Request-ID header
     - Falls back to generating new UUID if missing or invalid
     - Binds to asyncio context for automatic propagation

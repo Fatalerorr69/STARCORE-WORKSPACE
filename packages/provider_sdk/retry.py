@@ -110,9 +110,7 @@ async def attempt_with_retry[T](
                 raise
 
             if attempt >= config.max_retries:
-                logger.error(
-                    f"{operation_name} failed after {config.max_retries} retries: {exc}"
-                )
+                logger.error(f"{operation_name} failed after {config.max_retries} retries: {exc}")
                 raise RetryableError(
                     f"{operation_name} failed after {config.max_retries} retries",
                     exc,
