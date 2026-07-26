@@ -67,7 +67,9 @@ two providers via `STARCORE_AI_PROVIDER`:
 
 - `anthropic` (default) — `STARCORE_ANTHROPIC_API_KEY`, `STARCORE_ANTHROPIC_MODEL`
 - `openai-compatible` — any `/v1/chat/completions` server (Ollama, LM
-  Studio, vLLM, LocalAI, OpenAI itself): `STARCORE_AI_BASE_URL`, optional
+  Studio, vLLM, LocalAI, OpenAI itself): `STARCORE_AI_BASE_URL`, required
+  `STARCORE_AI_MODEL` (e.g. `llama3`, `gpt-4o-mini` — no default, and
+  `STARCORE_ANTHROPIC_MODEL` is not reused here), optional
   `STARCORE_AI_API_KEY`
 
 ## Deployment environments

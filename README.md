@@ -34,13 +34,13 @@ This README reflects the **actual current state of the codebase**, not the long-
 | Observability | Done | GET /metrics — Prometheus text format, authenticated; structured loguru logging (STARCORE_LOG_JSON) |
 | Environment Detection | Done | starcore audit/doctor/diagnose and GET /diagnostics report runtime_environment (proxmox-host / container / local), OS platform (incl. WSL), cloud provider (AWS/GCP/Azure, diagnose only), and calling-client platform (browser/mobile/CLI, GET /diagnostics only) |
 | Security | Done | Bandit SAST + gitleaks secret scanning on every PR and nightly; pip-audit dependency vulnerability scan |
-| Tests | 442 passing | ruff, pyright, pytest (100% coverage floor, incl. Hypothesis property tests), pre-commit, CI on every PR |
+| Tests | 447 passing | ruff, pyright, pytest (100% coverage floor, incl. Hypothesis property tests), pre-commit, CI on every PR |
 
 ## What's Planned, Not Built Yet
 
 | Component | Status | Notes |
 |---|---|---|
-| Alembic Migrations | Done | migrations/ tracks schema via `alembic upgrade head`; create_all() still runs on app start for dev convenience |
+| Alembic Migrations | Done | migrations/ tracks schema via `alembic upgrade head`; create_all() runs only once, on a genuinely fresh/untracked database, and is stamped at head immediately after -- an existing database whose recorded revision doesn't match head fails startup instead |
 | Plugin System | Done | Plugins in plugins/<name>/ expose register(context) to add custom providers (context.registry) and subscribe to blueprint execution events (context.events); discoverable via 'starcore plugins' and GET /plugins |
 | Diagnostics | Done | `starcore diagnose` CLI and `GET /diagnostics` API report config, database, migrations, and Docker/Proxmox provider health including node CPU/RAM/disk, storage, and orphaned resource detection |
 | Web Dashboard | Done (read-only) | Static HTML/JS at GET /ui, calls the existing API (providers, runs, diagnostics) via fetch() with an X-API-Key stored in localStorage. No build step |
@@ -48,7 +48,7 @@ This README reflects the **actual current state of the codebase**, not the long-
 | Proxmox Template Aliases | Done | Blueprints can use 'config: {template: "ubuntu-24.04"}' instead of a raw template_vmid; resolved automatically before plan/run via Proxmox's template list, with a clear error if the name is missing or ambiguous |
 | Resource Lifecycle Actions | Done | 'starcore resource action <provider> <action> <resource>' and POST /resources/action run a single action (start/stop/shutdown/destroy for Proxmox, start/stop/remove for Docker) against one resource, independent of any blueprint |
 | Proxmox Environment Discovery | Done | 'starcore proxmox discover' and GET /proxmox/discover catalog node capacity, storage, available VM/LXC templates, and network bridges, used to tailor deployments before they run |
-| AI Blueprint Generation | Done (requires API key/endpoint) | 'starcore ai generate "<description>"' and POST /ai/generate-blueprint translate natural language into a validated blueprint YAML via a pluggable provider: Anthropic (STARCORE_ANTHROPIC_API_KEY) or any OpenAI-compatible /v1/chat/completions server — Ollama, LM Studio, vLLM, LocalAI, OpenAI itself (STARCORE_AI_PROVIDER=openai-compatible, STARCORE_AI_BASE_URL) |
+| AI Blueprint Generation | Done (requires API key/endpoint) | 'starcore ai generate "<description>"' and POST /ai/generate-blueprint translate natural language into a validated blueprint YAML via a pluggable provider: Anthropic (STARCORE_ANTHROPIC_API_KEY) or any OpenAI-compatible /v1/chat/completions server — Ollama, LM Studio, vLLM, LocalAI, OpenAI itself (STARCORE_AI_PROVIDER=openai-compatible, STARCORE_AI_BASE_URL, STARCORE_AI_MODEL) |
 | Installer Studio | Vision | Not started |
 | Dashboard (Web UI) | Vision | Not started |
 | AI Brain | Vision | Not started |

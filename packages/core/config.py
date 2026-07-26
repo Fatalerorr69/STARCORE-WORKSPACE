@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     ai_base_url: str | None = None
     # Optional API key for the openai-compatible provider; many local servers don't need one.
     ai_api_key: str | None = None
+    # Required when ai_provider = "openai-compatible", e.g. "llama3" (Ollama) or
+    # "gpt-4o-mini" (OpenAI). There is no universal default: server-side model
+    # catalogs differ, and falling back to an Anthropic model name here would
+    # silently send a nonexistent model to the configured server.
+    ai_model: str | None = None
 
     # Requests per minute allowed per client IP, applied globally to all
     # endpoints except /health (see core/main.py). 0 disables rate limiting

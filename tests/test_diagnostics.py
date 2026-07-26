@@ -133,6 +133,33 @@ def test_check_database_connectivity_returns_error_when_engine_fails():
     assert "Cannot connect" in result.detail
 
 
+def test_redact_database_url_falls_back_on_unparseable_url():
+    from core.diagnostics import _redact_database_url
+
+    assert _redact_database_url("not-a-valid-url") == "<unparseable database URL>"
+
+
+def test_check_database_connectivity_redacts_credentials_in_database_url(monkeypatch):
+    """Security regression: the unauthenticated /health endpoint surfaces this
+    detail message verbatim, so a STARCORE_DATABASE_URL with embedded
+    credentials (e.g. postgresql://user:s3cret@host/db) must never appear
+    with the password intact, in either the success or the error path.
+    """
+    from core.diagnostics import check_database_connectivity
+
+    monkeypatch.setenv(
+        "STARCORE_DATABASE_URL", "postgresql://dbuser:s3cret-password@db.example.com/starcore"
+    )
+    get_settings.cache_clear()
+    try:
+        with patch("core.diagnostics.create_engine", side_effect=Exception("connection refused")):
+            result = check_database_connectivity()
+        assert "s3cret-password" not in result.detail
+        assert "dbuser" in result.detail
+    finally:
+        get_settings.cache_clear()
+
+
 def test_check_api_key_returns_warning_without_api_key(monkeypatch):
     """Line 38: _check_api_key() warning path when no key is configured."""
     from core.diagnostics import _check_api_key

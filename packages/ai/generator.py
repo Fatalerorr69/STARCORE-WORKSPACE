@@ -41,9 +41,16 @@ def _build_provider(settings: Settings) -> AIProvider:
                 "STARCORE_AI_BASE_URL must be set when using the openai-compatible provider "
                 "(e.g. http://localhost:11434/v1 for Ollama)."
             )
+        if not settings.ai_model:
+            raise BlueprintGenerationError(
+                "STARCORE_AI_MODEL must be set when using the openai-compatible provider "
+                "(e.g. 'llama3' for Ollama, 'gpt-4o-mini' for OpenAI). There is no default: "
+                "falling back to an Anthropic model name would silently send a nonexistent "
+                "model to your configured server."
+            )
         return OpenAICompatProvider(
             base_url=settings.ai_base_url,
-            model=settings.anthropic_model,
+            model=settings.ai_model,
             api_key=settings.ai_api_key,
         )
 
