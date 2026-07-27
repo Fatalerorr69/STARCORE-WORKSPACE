@@ -106,6 +106,8 @@ sessions:
   - Implementovat automation scripts jako standalone Python CLIs (bez project deps)
   - Implementován startup_protocol.py (12-step startup flow) integrující všechny .starcore
     capabilities do jednoho koherentního operačního modelu; 54 standalone testů
+  - 'R-001 uzavřen: 22 mutable GitHub Actions referencí pinned na immutable SHA ve
+    všech 7 workflow souborech (commit c0d2b38)'
   risks:
   - R-001
   - R-007

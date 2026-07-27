@@ -25,14 +25,11 @@
 ## CRITICAL / HIGH
 
 ### R-001 — GitHub Actions SHA pinning
-- **Stav:** OPEN
+- **Stav:** CLOSED
 - **Závažnost:** HIGH
+- **Uzavřeno:** 2026-07-27 (commit `c0d2b38`)
 - **Soubory:** `.github/workflows/ci.yml`, `codeql.yml`, `docker-publish.yml`, `release.yml`, `security-nightly.yml`, `dependabot-auto-merge.yml`, `jekyll-gh-pages.yml`
-- **Problém:** 14 mutable version tags (např. `actions/checkout@v4`) — supply chain útok by mohl přepsat tag a spustit libovolný kód v CI
-- **Návrh opravy:** Každý `uses: owner/action@vX` → `uses: owner/action@<SHA> # vX`
-- **Dopad blocker:** Ano — bez SHA je CI pipeline potenciálně kompromitovatelný
-- **Priorita:** P1 — udělat před dalším PR merge
-- **Odhad práce:** 1-2 hodiny (7 souborů, automatizovatelné `actionlint` nebo manuálně)
+- **Oprava:** 22 mutable referencí pinned na immutable commit SHA ve všech 7 workflow souborech; verze zachována jako inline komentář (`@SHA # vX`)
 
 ---
 

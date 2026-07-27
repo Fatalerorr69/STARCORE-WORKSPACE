@@ -7,24 +7,8 @@
 
 ## P1 — Vyřešit brzy
 
-### R-001: GitHub Actions SHA pinning
-- **Popis:** 14 mutable version tags v 7 workflow souborech — supply chain riziko
-- **Soubory:**
-  - `.github/workflows/ci.yml` — `actions/checkout@v4`, `actions/setup-python@v5`, `docker/build-push-action@v5`, `docker/metadata-action@v5`, `docker/login-action@v3`, `actions/upload-artifact@v4`
-  - `.github/workflows/codeql.yml` — `actions/checkout@v7` (aktualizováno, ale stále mutable tag)
-  - `.github/workflows/docker-publish.yml` — docker actions
-  - `.github/workflows/release.yml` — release actions
-  - `.github/workflows/security-nightly.yml` — security actions
-  - `.github/workflows/dependabot-auto-merge.yml` — gh-action-merge-dependabot
-  - `.github/workflows/jekyll-gh-pages.yml` — Pages actions
-- **Postup opravy:**
-  ```bash
-  # Pro každý action tag získat SHA:
-  # gh api /repos/{owner}/{repo}/git/refs/tags/{tag} -> object.sha
-  # pak nahradit @vX za @SHA # vX
-  ```
-- **Odhad:** 1-2 hodiny
-- **Blokátor:** Žádný
+### ~~R-001: GitHub Actions SHA pinning~~ — CLOSED 2026-07-27
+- 22 referencí pinned ve všech 7 workflow souborech (commit `c0d2b38`)
 
 ### P2 — Deferrable
 
