@@ -1,4 +1,4 @@
-"""Datové modely pro Prompt Registry a Session Ledger."""
+"""Datové modely pro Prompt Registry, Session Ledger a QC Engines."""
 
 from __future__ import annotations
 
@@ -179,3 +179,60 @@ class SessionEntry:
 
 def now_iso() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# ── QC Engine models ──────────────────────────────────────────────────────────
+
+
+class CheckState(StrEnum):
+    PASS = "PASS"
+    WARNING = "WARNING"
+    FAIL = "FAIL"
+    UNKNOWN = "UNKNOWN"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+
+
+_ICONS: dict[str, str] = {
+    "PASS": "✓",
+    "WARNING": "⚠",
+    "FAIL": "✗",
+    "UNKNOWN": "?",
+    "NOT_APPLICABLE": "—",
+}
+
+# Priority order for rolling up multiple results (highest wins)
+_STATE_PRIORITY: dict[str, int] = {
+    "FAIL": 4,
+    "UNKNOWN": 3,
+    "WARNING": 2,
+    "PASS": 1,
+    "NOT_APPLICABLE": 0,
+}
+
+
+@dataclass
+class CheckResult:
+    name: str
+    state: CheckState
+    detail: str
+    evidence: list[str] = field(default_factory=list)
+
+    @property
+    def icon(self) -> str:
+        return _ICONS.get(str(self.state), "?")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "state": str(self.state),
+            "detail": self.detail,
+            "evidence": self.evidence,
+        }
+
+
+def worst_state(results: list[CheckResult]) -> CheckState:
+    """Return the highest-priority state from a list of results."""
+    if not results:
+        return CheckState.UNKNOWN
+    worst = max(results, key=lambda r: _STATE_PRIORITY.get(str(r.state), 0))
+    return worst.state

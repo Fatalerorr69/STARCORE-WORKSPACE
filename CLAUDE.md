@@ -302,13 +302,17 @@ The `.starcore/` directory is a cross-session state layer for the STARCORE Auton
   prompts/
     registry.yaml            — prompt catalog (PROM-001..PROM-008)
   scripts/
-    models.py                — data models (PromptEntry, SessionEntry)
+    models.py                — data models (PromptEntry, SessionEntry, CheckResult)
     registry.py              — Prompt Registry CLI
     ledger.py                — Session Ledger CLI
     decision_engine.py       — Interactive Decision Engine CLI
-    tests/                   — standalone tests for scripts/
+    impact_analyzer.py       — Change Impact Analyzer (file → module → categories)
+    regression_sentinel.py   — Regression Sentinel (detects drift vs baseline)
+    release_readiness.py     — Release Readiness Engine (12 gates)
+    qc_engine.py             — QC Orchestrator (unified report)
+    tests/                   — standalone tests for scripts/ (117 tests)
   state/
-    regression_baseline.json — test/coverage/vulnerability sentinel
+    regression_baseline.json — test/coverage/vulnerability + sentinel baseline
     release.md               — release readiness gate status
 ```
 
@@ -333,4 +337,39 @@ uv run python .starcore/scripts/decision_engine.py check-safety "git push --forc
 uv run python .starcore/scripts/decision_engine.py format
 uv run python .starcore/scripts/decision_engine.py log --decision "..."
 uv run python .starcore/scripts/tests/test_decision_engine.py   # 49 tests
+```
+
+## QC Engines
+
+Three quality-control engines run against the repository without modifying it.
+
+**Change Impact Analyzer** — maps `git diff` → module → impact categories using actual repo evidence (no speculation):
+```bash
+uv run python .starcore/scripts/impact_analyzer.py analyze
+uv run python .starcore/scripts/impact_analyzer.py analyze --since HEAD~1
+uv run python .starcore/scripts/impact_analyzer.py module packages/core/main.py
+```
+
+**Regression Sentinel** — detects drift across 7 dimensions (test count, API routes, CLI commands, config fields, ADR count, workflow count, lock sync):
+```bash
+uv run python .starcore/scripts/regression_sentinel.py check
+uv run python .starcore/scripts/regression_sentinel.py diff
+uv run python .starcore/scripts/regression_sentinel.py update  # only after confirmed CI pass
+```
+
+**Release Readiness Engine** — evaluates 12 gates (BUILD/TEST/SECURITY/DEPENDENCIES/PACKAGE/ARTIFACT/DOCUMENTATION/GITHUB/GOVERNANCE/DEPLOYMENT/BACKUP/RECOVERY). UNKNOWN ≠ PASS.
+```bash
+uv run python .starcore/scripts/release_readiness.py evaluate --quick
+uv run python .starcore/scripts/release_readiness.py evaluate           # full (slow)
+uv run python .starcore/scripts/release_readiness.py gate SECURITY
+```
+
+**QC Orchestrator** — unified report from all three engines:
+```bash
+uv run python .starcore/scripts/qc_engine.py run --quick
+uv run python .starcore/scripts/qc_engine.py run --impact --since HEAD~1
+uv run python .starcore/scripts/tests/test_qc_engines.py   # 68 tests
+```
+
+Full protocol: `.starcore/memory/qc_engines.md`
 ```

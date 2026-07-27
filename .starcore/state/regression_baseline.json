@@ -39,5 +39,14 @@
   "regression_check": {
     "description": "Pokud testy < min_tests nebo coverage < min_coverage nebo vulnerabilities > max_vulnerabilities → REGRESE DETEKOVÁNA",
     "action": "Nespouštět žádné destructive akce. Diagnostikovat příčinu. Nahlásit uživateli."
+  },
+  "sentinel": {
+    "test_count": 569,
+    "api_routes": 17,
+    "cli_commands": 4,
+    "config_fields": 21,
+    "adr_count": 16,
+    "workflow_count": 7,
+    "lock_sync": true
   }
 }

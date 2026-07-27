@@ -32,13 +32,17 @@ pro okamžité převzetí práce bez re-derivace kontextu.
     latest/                    — nejnovější vygenerované reporty
     archive/                   — archiv reportů
   scripts/
-    models.py                  — datové modely (PromptEntry, SessionEntry)
+    models.py                  — datové modely (PromptEntry, SessionEntry, CheckResult)
     registry.py                — Prompt Registry CLI
     ledger.py                  — Session Ledger CLI
     decision_engine.py         — Interactive Decision Engine CLI
-    tests/                     — standalone testy pro scripts/
+    impact_analyzer.py         — Change Impact Analyzer (soubor → modul → dopad)
+    regression_sentinel.py     — Regression Sentinel (detekce regresí vs baseline)
+    release_readiness.py       — Release Readiness Engine (12 gates)
+    qc_engine.py               — QC Orchestrátor (sjednocený report)
+    tests/                     — standalone testy pro scripts/ (117 testů)
   state/
-    regression_baseline.json   — sentinel baseline (testy, coverage, vulns)
+    regression_baseline.json   — sentinel baseline (testy, coverage, vulns, sentinel)
     release.md                 — stav release readiness
 ```
 
@@ -97,6 +101,23 @@ uv run python .starcore/scripts/decision_engine.py parse-choice "Varianta 2"
 uv run python .starcore/scripts/decision_engine.py check-safety "git push --force"
 uv run python .starcore/scripts/decision_engine.py log --decision "Zvolena varianta 1"
 uv run python .starcore/scripts/tests/test_decision_engine.py        # 49 testů
+
+# QC Engines
+uv run python .starcore/scripts/impact_analyzer.py analyze
+uv run python .starcore/scripts/impact_analyzer.py analyze --since HEAD~1
+uv run python .starcore/scripts/impact_analyzer.py module SOUBOR
+
+uv run python .starcore/scripts/regression_sentinel.py check
+uv run python .starcore/scripts/regression_sentinel.py diff
+uv run python .starcore/scripts/regression_sentinel.py update   # jen po CI průchodu
+
+uv run python .starcore/scripts/release_readiness.py evaluate --quick
+uv run python .starcore/scripts/release_readiness.py evaluate
+uv run python .starcore/scripts/release_readiness.py gate SECURITY
+
+uv run python .starcore/scripts/qc_engine.py run --quick
+uv run python .starcore/scripts/qc_engine.py run --impact
+uv run python .starcore/scripts/tests/test_qc_engines.py        # 68 testů
 ```
 
 ## Odkaz v CLAUDE.md
