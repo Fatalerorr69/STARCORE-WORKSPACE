@@ -1,0 +1,79 @@
+# STARCORE Prompt Registry
+# Katalog registrovaných promptů pro STARCORE Autonomous Engineering Agent
+# Formát: PROM-XXX
+# Poslední aktualizace: 2026-07-27
+
+prompts:
+  - id: PROM-001
+    name: STARCORE MASTER AUTONOMOUS ENGINEERING SESSION
+    category: master
+    file: master/autonomous-engineering-session.md
+    status: active
+    version: "1.0"
+    description: |
+      Hlavní provozní prompt. Definuje phase-gated protokol (Phase 1-9),
+      9-krokový session startup checklist, autonomní decision rule,
+      Czech-language interaction, bezpečnostní omezení.
+    key_features:
+      - Phase-gated protokol s PHASE_COMPLETE terminátory
+      - Absolute safety constraints (nikdy secrets, nikdy force-push)
+      - OBSERVE→VERIFY→PLAN→IMPLEMENT→TEST→REVIEW→PUBLISH→MONITOR→RE-VERIFY cyklus
+    used_in_sessions:
+      - starcore-autonomous-engineering-4p3tlj
+
+  - id: PROM-002
+    name: STARCORE WORKSPACE ENHANCEMENT BOOTSTRAP
+    category: audits
+    file: audits/workspace-enhancement-bootstrap.md
+    status: active
+    version: "1.0"
+    description: |
+      Audit prompt pro analýzu existujících mechanismů a návrh .starcore/ memory architektury.
+      Read-only — nesmí vytvářet soubory ani commitovat.
+      Výstup: 19-sekční Czech report + ANALYSIS_COMPLETE terminační string.
+    key_features:
+      - 20 požadovaných capabilities pro STARCORE OS
+      - AUDIT→DESIGN→MAP→IDENTIFY_CONFLICTS flow
+      - Architektura .starcore/ directory structure
+
+  - id: PROM-003
+    name: STARCORE WORKSPACE MEMORY IMPLEMENTATION
+    category: implementation
+    file: implementation/workspace-memory-implementation.md
+    status: active
+    version: "1.0"
+    description: |
+      Implementační prompt pro vytvoření .starcore/ persistent memory layer.
+      Provede ověření git stavu, vytvoří všechny soubory, validuje, spustí testy.
+      Necommituje ani nepushuje.
+      Výstup: Czech report + ACTION_REQUIRED menu [1]-[4].
+    key_features:
+      - Kompletní .starcore/ directory vytvoření
+      - Cross-session state lifecycle (create/read/update/stale detection)
+      - Prompt registry vytvoření
+      - Regression baseline (state/regression_baseline.json)
+
+  - id: PROM-004
+    name: STARCORE FINAL OPERATING MODE
+    category: master
+    file: master/final-operating-mode.md
+    status: active
+    version: "1.0"
+    description: |
+      Continuous operating mode po dokončení všech fází.
+      OBSERVE→VERIFY→PLAN→IMPLEMENT→TEST→REVIEW→PUBLISH→MONITOR→RE-VERIFY cyklus.
+      Czech-language session startup checklist (9 kroků).
+      Autonomní decision rule: SAFE+REVERSIBLE+WITHIN_SCOPE→act; DESTRUCTIVE→request approval.
+
+  - id: PROM-005
+    name: STARCORE PHASE 8 - CONTROLLED IMPLEMENTATION
+    category: implementation
+    file: implementation/phase-8-controlled.md
+    status: archived
+    version: "1.0"
+    description: |
+      Fázový implementační prompt pro Phase 8 (6 batchů).
+      9-krokový process per change unit. Každá změna: test first → implement → verify.
+      Zakončeno PHASE_COMPLETE/CURRENT_PHASE=8/NEXT_PHASE=9.
+    used_in_sessions:
+      - starcore-autonomous-engineering-4p3tlj

@@ -278,3 +278,31 @@ CI also builds the Docker image and smoke-tests `GET /health`. A nightly workflo
 ### Provider concurrency (ADR-013)
 
 `execute()` calls against a shared provider instance are deliberately unbounded — no `asyncio.Semaphore` exists. ADR-013 confirmed no shared-mutable-state hazard for current Docker and Proxmox SDK clients under STARCORE's actual configuration, but load testing was not performed. Three trigger conditions are defined in the ADR for adding a bounded semaphore later.
+
+## Persistent project memory (`.starcore/`)
+
+The `.starcore/` directory is a cross-session state layer for the STARCORE Autonomous Engineering Agent. New sessions should read it before deriving context from scratch.
+
+```
+.starcore/
+  README.md                  — overview and cold-start protocol
+  memory/
+    project_snapshot.md      — key facts for cold start (metrics, architecture)
+    risks.md                 — canonical risk register (source of truth)
+    user_preferences.md      — communication rules, approval gates
+    architecture.md          — architecture reference
+    decisions.md             — working decisions (pre-ADR)
+    known_issues.md          — active known issues
+    completed_work.md        — record of completed work
+    pending_work.md          — remaining work with priorities
+  sessions/
+    current.md               — active session ledger
+    archive/                 — past session history
+  prompts/
+    registry.yaml            — prompt catalog (PROM-001..PROM-005)
+  state/
+    regression_baseline.json — test/coverage/vulnerability sentinel
+    release.md               — release readiness gate status
+```
+
+**Cold-start protocol for new sessions:** read `memory/project_snapshot.md`, then `sessions/current.md`, then `memory/pending_work.md` before any other action. Never store secrets or credentials in `.starcore/`.
