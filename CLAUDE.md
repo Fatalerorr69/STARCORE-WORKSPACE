@@ -296,13 +296,41 @@ The `.starcore/` directory is a cross-session state layer for the STARCORE Auton
     completed_work.md        — record of completed work
     pending_work.md          — remaining work with priorities
   sessions/
-    current.md               — active session ledger
+    current.md               — human-readable session ledger (reference)
+    ledger.yaml              — machine-readable session ledger (source of truth)
     archive/                 — past session history
   prompts/
-    registry.yaml            — prompt catalog (PROM-001..PROM-005)
+    registry.yaml            — prompt catalog (PROM-001..PROM-008)
+  scripts/
+    models.py                — data models (PromptEntry, SessionEntry)
+    registry.py              — Prompt Registry CLI
+    ledger.py                — Session Ledger CLI
+    decision_engine.py       — Interactive Decision Engine CLI
+    tests/                   — standalone tests for scripts/
   state/
     regression_baseline.json — test/coverage/vulnerability sentinel
     release.md               — release readiness gate status
 ```
 
-**Cold-start protocol for new sessions:** read `memory/project_snapshot.md`, then `sessions/current.md`, then `memory/pending_work.md` before any other action. Never store secrets or credentials in `.starcore/`.
+**Cold-start protocol for new sessions:** read `memory/project_snapshot.md`, then run `uv run python .starcore/scripts/ledger.py current`, then `memory/pending_work.md` before any other action. Never store secrets or credentials in `.starcore/`.
+
+## Interactive Decision Engine
+
+After every audit, implementation, or failure, respond in the standard Decision Engine format. Full protocol: `.starcore/memory/decision_engine.md`.
+
+**Mandatory sections:** STAV / CO BYLO ZJIŠTĚNO / CO BYLO OVĚŘENO / RIZIKA / DOPORUČENÍ / DOPAD / RIZIKO / ROLLBACK / DALŠÍ KROK
+
+**Default language:** Czech for all user-facing text; technical identifiers unchanged.
+
+**Safety gates** — require explicit confirmation before executing:
+`merge` · `push` · `delete` · `reset` · `--force` · `infrastructure` · `production` · `secret` / `credential` / `password` / `token`
+
+**CLI tools:**
+```bash
+uv run python .starcore/scripts/decision_engine.py render --file report.yaml
+uv run python .starcore/scripts/decision_engine.py parse-choice "Varianta 1"
+uv run python .starcore/scripts/decision_engine.py check-safety "git push --force"
+uv run python .starcore/scripts/decision_engine.py format
+uv run python .starcore/scripts/decision_engine.py log --decision "..."
+uv run python .starcore/scripts/tests/test_decision_engine.py   # 49 tests
+```

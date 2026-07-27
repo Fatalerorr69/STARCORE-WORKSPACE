@@ -35,6 +35,8 @@ pro okamžité převzetí práce bez re-derivace kontextu.
     models.py                  — datové modely (PromptEntry, SessionEntry)
     registry.py                — Prompt Registry CLI
     ledger.py                  — Session Ledger CLI
+    decision_engine.py         — Interactive Decision Engine CLI
+    tests/                     — standalone testy pro scripts/
   state/
     regression_baseline.json   — sentinel baseline (testy, coverage, vulns)
     release.md                 — stav release readiness
@@ -49,6 +51,7 @@ pro okamžité převzetí práce bez re-derivace kontextu.
 5. **`memory/risks.md`** je kanonický risk register — `reports/*.md` jsou historické archivy
 6. Prompt registry spravuj přes CLI: `uv run python .starcore/scripts/registry.py`
 7. Session ledger spravuj přes CLI: `uv run python .starcore/scripts/ledger.py`
+8. Po každém auditu/implementaci/selhání použij **Decision Engine formát** (viz `memory/decision_engine.md`)
 
 ## Cold-start protokol (pro nová sezení)
 
@@ -85,6 +88,15 @@ uv run python .starcore/scripts/ledger.py add-risk R-001
 uv run python .starcore/scripts/ledger.py add-test --passed 569 --failed 0 --coverage 100.0
 uv run python .starcore/scripts/ledger.py reconstruct SESSION_ID
 uv run python .starcore/scripts/ledger.py validate
+
+# Decision Engine
+uv run python .starcore/scripts/decision_engine.py format             # prázdná šablona
+uv run python .starcore/scripts/decision_engine.py render --file r.yaml
+cat report.yaml | uv run python .starcore/scripts/decision_engine.py render --file -
+uv run python .starcore/scripts/decision_engine.py parse-choice "Varianta 2"
+uv run python .starcore/scripts/decision_engine.py check-safety "git push --force"
+uv run python .starcore/scripts/decision_engine.py log --decision "Zvolena varianta 1"
+uv run python .starcore/scripts/tests/test_decision_engine.py        # 49 testů
 ```
 
 ## Odkaz v CLAUDE.md
