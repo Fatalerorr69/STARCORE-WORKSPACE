@@ -310,7 +310,8 @@ The `.starcore/` directory is a cross-session state layer for the STARCORE Auton
     regression_sentinel.py   — Regression Sentinel (detects drift vs baseline)
     release_readiness.py     — Release Readiness Engine (12 gates)
     qc_engine.py             — QC Orchestrator (unified report)
-    tests/                   — standalone tests for scripts/ (117 tests)
+    startup_protocol.py      — Startup Protocol (12-step session init, Czech report)
+    tests/                   — standalone tests for scripts/ (171 tests)
   state/
     regression_baseline.json — test/coverage/vulnerability + sentinel baseline
     release.md               — release readiness gate status
@@ -338,6 +339,19 @@ uv run python .starcore/scripts/decision_engine.py format
 uv run python .starcore/scripts/decision_engine.py log --decision "..."
 uv run python .starcore/scripts/tests/test_decision_engine.py   # 49 tests
 ```
+
+## Startup Protocol
+
+Run at the beginning of every new session to produce a Czech session status report with a 6-option decision menu. Implements the 12-step startup flow: identify repo → branch → HEAD → worktree → project state → last session → risks → pending work → decisions → Regression Sentinel → GitHub state → Czech report.
+
+```bash
+uv run python .starcore/scripts/startup_protocol.py           # full (runs sentinel + github checks)
+uv run python .starcore/scripts/startup_protocol.py --quick   # skip slow QC checks
+uv run python .starcore/scripts/startup_protocol.py --json    # machine-readable output
+uv run python .starcore/scripts/tests/test_startup_protocol.py   # 54 tests
+```
+
+Exit code: 1 if Regression Sentinel detects a regression (FAIL), 0 otherwise.
 
 ## QC Engines
 

@@ -5,6 +5,45 @@
 
 ---
 
+## Sezení: starcore-autonomous-engineering-4p3tlj (pokračování, 2026-07-27)
+
+### Phase 10 — STARCORE Autonomous OS Integration v1.0
+
+**Cíl:** Integrovat 8 dříve postavených capabilities do jednoho koherentního operačního modelu.
+
+**Výsledek:** COMPLETED (54/54 testů, 569/569 hlavní suite, 100% coverage)
+
+#### Implementované soubory
+
+- `.starcore/scripts/startup_protocol.py` — 12-step startup flow
+  - `step_git_info()` — kroky 1-4: repo/branch/HEAD/worktree
+  - `step_load_project_snapshot()`, `step_load_last_session()` — kroky 5-6
+  - `step_load_risks()`, `step_load_pending_work()`, `step_load_decisions()` — kroky 7-9
+  - `step_verify_sentinel()` — krok 10: Regression Sentinel integration
+  - `step_verify_github()` — krok 11: GitHub gate integration
+  - `format_startup_report()` — český startup report (11 polí + 6-option VOLBY menu)
+  - CLI: `--quick` (přeskočit pomalé QC), `--json` (strojový výstup)
+  - Exit code: 1 při sentinel FAIL, 0 jinak
+
+- `.starcore/scripts/tests/test_startup_protocol.py` — 54 standalone testů
+  - Pure parsing functions testovány přímo (bez file I/O mockování)
+  - 10 test tříd: TestGitInfo, TestRiskEntry, TestParseRisksContent, TestParsePendingWorkContent, TestParseDecisionsContent, TestFmtSession, TestFmtNextAction, TestFormatStartupReport, TestStartupStateToDict, TestCollectStartupState
+
+#### Dokumentace aktualizována
+
+- `.starcore/README.md`: přidán `startup_protocol.py` do scripts/ tree, test count 117 → 171
+- `CLAUDE.md`: přidán startup_protocol.py do tree, přidána sekce "Startup Protocol", test count 117 → 171
+
+#### Opravené problémy (během implementace)
+
+- `_RISK_FIELD_RE`: kolon je UVNITŘ tučného formátování (`**Závažnost:**`) — opravena regex
+- `parse_decisions_content`: em dash vs `--` v test sample — přechod na `\S+` separator
+- `parse_pending_work_content`: `### P2 — Deferrable` uvnitř P1 sekce — filtrován
+- Remote URL v proxy prostředí (`http///local_proxy@127.0.0.1/...`) — extrakce `owner/repo` regexem
+- ruff E741 (`l` → `ln`), nepoužité importy (`field`, `textwrap`) — opraveno
+
+---
+
 ## Sezení: starcore-autonomous-engineering-4p3tlj (2026-07-26 – 2026-07-27)
 
 ### Phase 8 — Controlled Implementation (6 batchů)

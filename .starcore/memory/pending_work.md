@@ -1,7 +1,7 @@
 # Pending Work — STARCORE Platform
 
 > Zbývající práce seřazená podle priority. Aktualizovat při každé změně scope.
-> **Poslední aktualizace:** 2026-07-27
+> **Poslední aktualizace:** 2026-07-27 (po Phase 10 — Startup Protocol)
 
 ---
 

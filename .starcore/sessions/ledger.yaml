@@ -91,6 +91,11 @@ sessions:
     failed: 0
     coverage: 100.0
     command: uv run pytest -q --cov
+  - timestamp: '2026-07-27T04:21:21Z'
+    passed: 54
+    failed: 0
+    coverage: 100.0
+    command: uv run pytest -q --cov
   decisions:
   - Použít asyncio.create_task + asyncio.shield pro WAIT_AND_MARK/IGNORE (D-001)
   - Přepsat timeout testy na real async timing, odstranit monkeypatching (D-002)
@@ -99,6 +104,8 @@ sessions:
   - Aktualizovat regression_baseline.json manuálně (D-005)
   - Prompt registry v YAML formátu (D-006)
   - Implementovat automation scripts jako standalone Python CLIs (bez project deps)
+  - Implementován startup_protocol.py (12-step startup flow) integrující všechny .starcore
+    capabilities do jednoho koherentního operačního modelu; 54 standalone testů
   risks:
   - R-001
   - R-007

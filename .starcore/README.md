@@ -40,7 +40,8 @@ pro okamžité převzetí práce bez re-derivace kontextu.
     regression_sentinel.py     — Regression Sentinel (detekce regresí vs baseline)
     release_readiness.py       — Release Readiness Engine (12 gates)
     qc_engine.py               — QC Orchestrátor (sjednocený report)
-    tests/                     — standalone testy pro scripts/ (117 testů)
+    startup_protocol.py        — Startup Protocol (12-step session init, Czech report)
+    tests/                     — standalone testy pro scripts/ (171 testů)
   state/
     regression_baseline.json   — sentinel baseline (testy, coverage, vulns, sentinel)
     release.md                 — stav release readiness
