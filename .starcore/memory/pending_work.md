@@ -27,8 +27,8 @@
 ### R-016: Dokumentovat STARCORE_POSTGRES_PASSWORD
 - **Odhad:** 15 minut
 
-### R-018: Packaging completeness (migrations/, alembic.ini, plugins/ ve wheel)
-- **Odhad:** 30 minut
+### ~~R-018: Packaging completeness~~ — CLOSED 2026-07-27
+- plugins → packages, migrations + alembic.ini → force-include (wheel 58→65 entries)
 
 ---
 

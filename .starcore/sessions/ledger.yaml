@@ -121,4 +121,4 @@ sessions:
     stop-hook)
   - commit .starcore/ memory layer schválen (implicitně přes stop-hook)
   blockers: []
-  next_action: R-012 CLOSED — zvážit R-018 (packaging) nebo R-010 (SBOM/cosign)
+  next_action: R-018 CLOSED — zvážit R-016 (Postgres password docs, 15 min) nebo R-010 (SBOM/cosign)

@@ -57,7 +57,12 @@ packages = [
     "packages/orchestrator",
     "packages/provider_sdk",
     "packages/providers",
+    "plugins",
 ]
+
+[tool.hatch.build.targets.wheel.force-include]
+"migrations" = "migrations"
+"alembic.ini" = "alembic.ini"
 
 [tool.hatch.build.targets.sdist]
 include = [

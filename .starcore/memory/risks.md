@@ -79,11 +79,10 @@
 - **Priorita:** P3
 
 ### R-018 — Packaging completeness
-- **Stav:** OPEN
+- **Stav:** CLOSED
 - **Závažnost:** LOW
-- **Problém:** `migrations/`, `alembic.ini`, `plugins/` nejsou explicitně zahrnuty ve wheel include patterns v `pyproject.toml`
-- **Návrh opravy:** Přidat do `[tool.hatch.build.targets.wheel]` nebo ověřit že `uv build` je zahrnuje správně
-- **Priorita:** P3
+- **Uzavřeno:** 2026-07-27
+- **Oprava:** `plugins` přidán do `packages`; `migrations` a `alembic.ini` přidány do `[tool.hatch.build.targets.wheel.force-include]`; wheel entries: 58 → 65
 
 ---
 
