@@ -195,7 +195,8 @@ class ProxmoxProvider(BaseProvider):
         return result
 
     def _resource_endpoint(self, node: str, vmid: int | str, kind: str) -> Any:
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("Proxmox provider is not connected")
         if kind == "lxc":
             return self._client.nodes(node).lxc(vmid)
         return self._client.nodes(node).qemu(vmid)
@@ -236,7 +237,8 @@ class ProxmoxProvider(BaseProvider):
             raise ValueError(f"Unsupported Proxmox action: '{action}'")
 
     async def _create_resource(self, task, resource_kind: str) -> None:
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("Proxmox provider is not connected")
         payload = task.payload
 
         node = payload.get("node")
@@ -304,7 +306,8 @@ class ProxmoxProvider(BaseProvider):
         )
 
     async def _destroy_resource(self, task, resource_kind: str) -> None:
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("Proxmox provider is not connected")
         payload = task.payload
 
         node = payload.get("node")
@@ -349,7 +352,8 @@ class ProxmoxProvider(BaseProvider):
         return node, vmid
 
     async def _snapshot_create(self, task, resource_kind: str) -> None:
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("Proxmox provider is not connected")
         node, vmid = self._require_snapshot_fields(task, need_name=True)
         payload = task.payload
         snapshot_name = payload["snapshot_name"]
@@ -374,7 +378,8 @@ class ProxmoxProvider(BaseProvider):
         )
 
     async def _snapshot_list(self, task, resource_kind: str) -> None:
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("Proxmox provider is not connected")
         node, vmid = self._require_snapshot_fields(task, need_name=False)
 
         endpoint = self._resource_endpoint(node, vmid, resource_kind)
@@ -386,7 +391,8 @@ class ProxmoxProvider(BaseProvider):
         task.result["node"] = node
 
     async def _snapshot_delete(self, task, resource_kind: str) -> None:
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("Proxmox provider is not connected")
         node, vmid = self._require_snapshot_fields(task, need_name=True)
         snapshot_name = task.payload["snapshot_name"]
 
@@ -406,7 +412,8 @@ class ProxmoxProvider(BaseProvider):
         )
 
     async def _snapshot_rollback(self, task, resource_kind: str) -> None:
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("Proxmox provider is not connected")
         node, vmid = self._require_snapshot_fields(task, need_name=True)
         snapshot_name = task.payload["snapshot_name"]
 
@@ -443,7 +450,8 @@ class ProxmoxProvider(BaseProvider):
         say the preview is unavailable rather than treat that as "no
         changes".
         """
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("Proxmox provider is not connected")
         node, vmid = self._require_snapshot_fields(task, need_name=True)
         snapshot_name = task.payload["snapshot_name"]
         endpoint = self._resource_endpoint(node, vmid, resource_kind)
@@ -477,7 +485,8 @@ class ProxmoxProvider(BaseProvider):
     async def _wait_for_task(
         self, node: str, upid: str, timeout: float = 300.0, interval: float = 2.0
     ) -> None:
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("Proxmox provider is not connected")
         elapsed = 0.0
         while elapsed < timeout:
             status = await asyncio.to_thread(self._client.nodes(node).tasks(upid).status.get)

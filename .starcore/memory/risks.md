@@ -66,12 +66,10 @@
 ## LOW
 
 ### R-012 — assert guards v provider kódu
-- **Stav:** OPEN
+- **Stav:** CLOSED
 - **Závažnost:** LOW
-- **Soubory:** `packages/providers/proxmox/provider.py`, `packages/providers/docker/provider.py`
-- **Problém:** 11 `assert` statementů v produkčním kódu — v Python s `-O` flag jsou vynechány → RuntimeError místo AssertionError
-- **Návrh opravy:** Každý `assert condition, msg` → `if not condition: raise ValueError(msg)`
-- **Priorita:** P2
+- **Uzavřeno:** 2026-07-27
+- **Oprava:** 11 `assert self._client is not None` → `if self._client is None: raise RuntimeError("... not connected")` v proxmox/provider.py (9×) a docker/provider.py (2×); 11 nových testů přidáno, 580/580 testů, 100% coverage
 
 ### R-016 — STARCORE_POSTGRES_PASSWORD dokumentace
 - **Stav:** OPEN

@@ -100,7 +100,8 @@ class DockerProvider(BaseProvider):
             raise ValueError(f"Unsupported Docker action: '{action}'")
 
     def _ensure_container(self, task) -> None:
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("Docker provider is not connected")
         try:
             self._client.containers.get(task.resource)
             logger.info("[Docker] Container '{}' already exists", task.resource)
@@ -124,7 +125,8 @@ class DockerProvider(BaseProvider):
         logger.info("[Docker] Created container '{}' from image '{}'", task.resource, image)
 
     def _container_action(self, name: str, action: str, **kwargs: Any) -> None:
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("Docker provider is not connected")
         container = self._client.containers.get(name)
         getattr(container, action)(**kwargs)
         logger.info("[Docker] {} -> {}", action, name)

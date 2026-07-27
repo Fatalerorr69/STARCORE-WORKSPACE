@@ -4,7 +4,7 @@ sessions:
   start_time: '2026-07-26T00:00:00Z'
   end_time: null
   branch: claude/starcore-autonomous-engineering-4p3tlj
-  head: 072068c
+  head: a446965
   user_requests:
   - STARCORE PHASE 8 / CONTROLLED IMPLEMENTATION — implementace R-005, R-006, R-009
     a dokumentace
@@ -121,4 +121,4 @@ sessions:
     stop-hook)
   - commit .starcore/ memory layer schválen (implicitně přes stop-hook)
   blockers: []
-  next_action: Implementace PROM-006 (Prompt Registry and Session Ledger) — v průběhu
+  next_action: R-012 CLOSED — zvážit R-018 (packaging) nebo R-010 (SBOM/cosign)

@@ -21,9 +21,8 @@
 ### R-010: SBOM/provenance attestations
 - **Odhad:** 2-4 hodiny
 
-### R-012: assert guards → if/raise
-- **Počet:** 11 assert statementů
-- **Odhad:** 30 minut
+### ~~R-012: assert guards → if/raise~~ — CLOSED 2026-07-27
+- 11 assert statementů → if/raise, 11 testů přidáno (commit viz ledger)
 
 ### R-016: Dokumentovat STARCORE_POSTGRES_PASSWORD
 - **Odhad:** 15 minut
