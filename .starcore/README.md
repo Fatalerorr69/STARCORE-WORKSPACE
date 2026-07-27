@@ -19,8 +19,9 @@ pro okamžité převzetí práce bez re-derivace kontextu.
     completed_work.md          — záznam dokončené práce
     pending_work.md            — zbývající práce s prioritami
   sessions/
-    current.md                 — aktivní session ledger
-    archive/                   — archiv ukončených sezení
+    current.md                 — human-readable session ledger (reference)
+    ledger.yaml                — machine-readable session ledger (zdroj pravdy)
+    archive/                   — archiv ukončených sezení (Markdown)
   prompts/
     registry.yaml              — katalog registrovaných promptů (PROM-xxx)
     master/                    — master provozní prompty
@@ -30,6 +31,10 @@ pro okamžité převzetí práce bez re-derivace kontextu.
   reports/
     latest/                    — nejnovější vygenerované reporty
     archive/                   — archiv reportů
+  scripts/
+    models.py                  — datové modely (PromptEntry, SessionEntry)
+    registry.py                — Prompt Registry CLI
+    ledger.py                  — Session Ledger CLI
   state/
     regression_baseline.json   — sentinel baseline (testy, coverage, vulns)
     release.md                 — stav release readiness
@@ -38,20 +43,49 @@ pro okamžité převzetí práce bez re-derivace kontextu.
 ## Pravidla pro práci s tímto adresářem
 
 1. **Nikdy neskladuj secrets/credentials** — ani redacted ani placeholder formy
-2. **Udržuj `sessions/current.md` aktuální** — na konci každého sezení archivuj do `sessions/archive/`
+2. **`sessions/ledger.yaml`** je machine-readable zdroj pravdy; `sessions/current.md` je human-readable reference
 3. **`state/regression_baseline.json` aktualizuj** po každém úspěšném průchodu CI gates
 4. **`memory/pending_work.md` aktualizuj** při každé změně scope (přidání/dokončení práce)
 5. **`memory/risks.md`** je kanonický risk register — `reports/*.md` jsou historické archivy
+6. Prompt registry spravuj přes CLI: `uv run python .starcore/scripts/registry.py`
+7. Session ledger spravuj přes CLI: `uv run python .starcore/scripts/ledger.py`
 
 ## Cold-start protokol (pro nová sezení)
 
 1. Přečti `memory/project_snapshot.md` — klíčová fakta
-2. Přečti `sessions/current.md` — kde předchozí sezení skončilo
+2. Načti předchozí sezení: `uv run python .starcore/scripts/ledger.py current`
 3. Přečti `memory/pending_work.md` — co zbývá udělat
 4. Přečti `memory/risks.md` — aktivní rizika
 5. Ověř git stav (`git status`, `git log --oneline -5`)
 6. Spusť smoke-test (`uv run pytest -q --tb=no 2>&1 | tail -3`)
-7. Teprve pak začni pracovat
+7. Zahaj nové sezení: `uv run python .starcore/scripts/ledger.py start --session-id "..." --branch "..." --head "..."`
+8. Teprve pak začni pracovat
+
+## Automation CLI
+
+```bash
+# Prompt Registry
+uv run python .starcore/scripts/registry.py list
+uv run python .starcore/scripts/registry.py list --status ACTIVE
+uv run python .starcore/scripts/registry.py get PROM-001
+uv run python .starcore/scripts/registry.py search "timeout"
+uv run python .starcore/scripts/registry.py register --name "..." --type MASTER --purpose "..."
+uv run python .starcore/scripts/registry.py update PROM-001 --status DEPRECATED
+uv run python .starcore/scripts/registry.py supersede PROM-001 --by PROM-007
+uv run python .starcore/scripts/registry.py versions PROM-001
+uv run python .starcore/scripts/registry.py validate
+
+# Session Ledger
+uv run python .starcore/scripts/ledger.py list
+uv run python .starcore/scripts/ledger.py current
+uv run python .starcore/scripts/ledger.py start --session-id "session-id" --branch "branch" --head "abc1234"
+uv run python .starcore/scripts/ledger.py end --next-action "Příští akce"
+uv run python .starcore/scripts/ledger.py add-decision "Použít X místo Y"
+uv run python .starcore/scripts/ledger.py add-risk R-001
+uv run python .starcore/scripts/ledger.py add-test --passed 569 --failed 0 --coverage 100.0
+uv run python .starcore/scripts/ledger.py reconstruct SESSION_ID
+uv run python .starcore/scripts/ledger.py validate
+```
 
 ## Odkaz v CLAUDE.md
 
