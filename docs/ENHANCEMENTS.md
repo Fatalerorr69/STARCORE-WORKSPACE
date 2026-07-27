@@ -1,19 +1,19 @@
 # STARCORE Platform Enhancements
 
-**Version**: 0.1.0  
-**Date**: 2026-07-26  
-**Branch**: `chore/copilot-integration-and-enhancements`
+**Version**: 0.1.0
+**Date**: 2026-07-26
 
 ## Overview
 
-This package implements production-ready enhancements to STARCORE Platform:
+This document describes the production-ready enhancements shipped as part of the
+`chore/copilot-integration-and-enhancements` sprint (now merged into `main`):
 
-1. ✅ **GitHub Copilot Integration** – IDE configuration, coding guidelines
-2. ✅ **Retry Logic with Exponential Backoff** – Resilient provider connections
-3. ✅ **Task Timeout Support** – Prevent hung tasks, configurable strategies
-4. ✅ **Request Correlation** – X-Request-ID propagation for observability
-5. ✅ **Automation Scripts** – One-command setup and verification
-6. ✅ **Documentation** – Testing guides, ADRs, upgrade instructions
+1. ✅ **GitHub Copilot Integration** — IDE configuration, coding guidelines
+2. ✅ **Retry Logic with Exponential Backoff** — Resilient provider connections
+3. ✅ **Task Timeout Support** — `execute_with_timeout` API; wiring deferred (ADR-016)
+4. ✅ **Request Correlation** — X-Request-ID propagation for observability
+5. ✅ **Automation Scripts** — One-command setup and verification
+6. ✅ **Documentation** — Testing guides, ADRs, upgrade instructions
 
 ---
 
@@ -22,10 +22,9 @@ This package implements production-ready enhancements to STARCORE Platform:
 ### Quick Start (Automated)
 
 ```bash
-# Clone and setup
+# Clone and setup (work against main — the feature branch is merged)
 git clone https://github.com/Fatalerorr69/starcore-platform.git
 cd starcore-platform
-git checkout chore/copilot-integration-and-enhancements
 
 # Run master setup script
 bash scripts/setup-copilot.sh
@@ -62,7 +61,7 @@ bash scripts/verify-integration.sh
 
 ### 1. Retry Logic (`packages/provider_sdk/retry.py`)
 
-**Problem**: Provider connections may fail transiently (network hiccups, timeouts).  
+**Problem**: Provider connections may fail transiently (network hiccups, timeouts).
 **Solution**: Exponential backoff retry with jitter.
 
 **Usage**:
@@ -100,10 +99,15 @@ result = await attempt_with_retry(
 
 ### 2. Task Timeout Support (`packages/orchestrator/timeout.py`)
 
-**Problem**: Long-running tasks can hang the orchestrator.  
-**Solution**: Configurable timeout with three strategies.
+**Problem**: Long-running tasks can hang the orchestrator.
+**Solution**: Configurable timeout API with three strategies.
 
-**Usage**:
+> **Status (ADR-016)**: `execute_with_timeout` is fully implemented and tested.
+> Wiring it into `Scheduler` and `BlueprintExecutor` is deliberately deferred
+> pending per-task `timeout_seconds` fields in the blueprint schema. There are no
+> global environment variables for timeout — see ADR-016 for the rationale.
+
+**Usage** (direct API, not yet wired into the scheduler):
 ```python
 from orchestrator.timeout import TimeoutConfig, TimeoutStrategy, execute_with_timeout
 
@@ -130,15 +134,9 @@ except TaskTimeoutError as exc:
 - `WAIT_AND_MARK`: Wait a bit longer, then mark as timed out
 - `IGNORE`: Log warning but continue (useful for fire-and-forget)
 
-**Configuration** (environment variables):
-```bash
-STARCORE_TASK_TIMEOUT_SECONDS=300
-STARCORE_TASK_TIMEOUT_STRATEGY=cancel
-```
-
 ### 3. Request Correlation (`packages/core/correlation.py`)
 
-**Problem**: Distributed logs across async tasks are hard to correlate.  
+**Problem**: Distributed logs across async tasks are hard to correlate.
 **Solution**: X-Request-ID header + contextvars propagation.
 
 **Usage** (automatic via middleware):
@@ -158,27 +156,12 @@ curl -H "X-Request-ID: my-correlation-id" http://localhost:8000/blueprints/run
 
 ## Configuration
 
-### Environment Variables
+### Retry Logic
 
-```bash
-# Retry behavior (global defaults)
-STARCORE_PROVIDER_RETRY_MAX_RETRIES=3
-STARCORE_PROVIDER_RETRY_BASE_DELAY=1.0
-STARCORE_PROVIDER_RETRY_MAX_DELAY=30.0
-
-# Task timeout
-STARCORE_TASK_TIMEOUT_SECONDS=300
-STARCORE_TASK_TIMEOUT_STRATEGY=cancel  # cancel|wait_and_mark|ignore
-
-# Request correlation
-STARCORE_REQUEST_ID_HEADER=X-Request-ID  # Custom header name
-```
-
-### Per-Provider Configuration
+Retry is configured as a class attribute on each provider:
 
 ```python
-# In provider __init__ or settings
-from provider_sdk import RetryConfig
+from provider_sdk.retry import RetryConfig
 
 class MyProvider(BaseProvider):
     retry_config = RetryConfig(
@@ -187,6 +170,19 @@ class MyProvider(BaseProvider):
         exponential_base=1.5,
     )
 ```
+
+There are no global environment variables for retry configuration — each provider
+controls its own policy via `RetryConfig`.
+
+### Task Timeout
+
+Timeout is configured per-call via `TimeoutConfig`. No global environment variable
+exists. See ADR-016 for the design rationale.
+
+### Request Correlation
+
+The `X-Request-ID` header name is fixed. No environment variable override is
+supported. The header value is caller-supplied or auto-generated as a UUID.
 
 ---
 
@@ -205,17 +201,7 @@ uv run pytest tests/test_timeout.py -v
 uv run pytest tests/test_correlation.py -v
 
 # All with coverage
-uv run pytest tests/ -v --cov --cov-fail-under=100
-```
-
-### Integration Tests
-
-```bash
-# Test retry with real provider
-uv run pytest tests/integration/test_provider_retry.py -v
-
-# Test timeout in parallel execution
-uv run pytest tests/integration/test_scheduler_timeout.py -v
+uv run pytest tests/ -v --cov --cov-report=term-missing --cov-fail-under=100
 ```
 
 ---
@@ -224,8 +210,8 @@ uv run pytest tests/integration/test_scheduler_timeout.py -v
 
 ✅ **Fully backward compatible**
 
-- Retry logic is **optional** (providers can opt-in)
-- Timeout is **disabled by default** (can be enabled per-task)
+- Retry logic is **optional** (providers can opt-in via `retry_config`)
+- Timeout is **disabled by default** (can be enabled per-call)
 - Request correlation is **automatic** (no code changes required)
 - All existing code continues to work without modification
 
@@ -250,7 +236,7 @@ async def connect(self) -> bool:
     async def _connect():
         self.client = await proxmoxer.ProxmoxAsync(...)
         return True
-    
+
     await attempt_with_retry(
         _connect,
         config=self.retry_config,
@@ -266,7 +252,7 @@ async def connect(self) -> bool:
 await provider.execute(task)
 ```
 
-**After** (with timeout):
+**After** (with timeout — once wiring is in place per ADR-016):
 ```python
 from orchestrator.timeout import execute_with_timeout, TimeoutConfig
 
@@ -285,14 +271,16 @@ await execute_with_timeout(
 
 ### ADR-014: Task Timeout Support
 
-**Status**: Accepted  
+**Status**: Accepted
 **Date**: 2026-07-26
 
-**Problem**:  
-Long-running provider operations can hang the entire orchestrator, especially with `--parallel` execution. Need timeout mechanism.
+**Problem**:
+Long-running provider operations can hang the entire orchestrator, especially with
+`--parallel` execution. Need timeout mechanism.
 
-**Decision**:  
-Implement `TimeoutConfig` with three strategies (CANCEL/WAIT_AND_MARK/IGNORE) to handle different timeout scenarios flexibly.
+**Decision**:
+Implement `TimeoutConfig` with three strategies (CANCEL/WAIT_AND_MARK/IGNORE) to
+handle different timeout scenarios flexibly.
 
 **Rationale**:
 - CANCEL (default): Fail fast for incorrect blueprints
@@ -304,16 +292,21 @@ Implement `TimeoutConfig` with three strategies (CANCEL/WAIT_AND_MARK/IGNORE) to
 - Need to configure timeouts appropriately per environment
 - Better observability of long-running operations
 
+See `docs/adr/ADR-014-task-timeout.md` and `docs/adr/ADR-016-task-timeout-integration.md`
+for the full ADR text and the deliberate deferral rationale.
+
 ### ADR-015: Request Correlation
 
-**Status**: Accepted  
+**Status**: Accepted
 **Date**: 2026-07-26
 
-**Problem**:  
-With async concurrency and event-driven architecture, logs from related operations are scattered. Need correlation mechanism.
+**Problem**:
+With async concurrency and event-driven architecture, logs from related operations
+are scattered. Need correlation mechanism.
 
-**Decision**:  
-Use `contextvars.ContextVar` to propagate X-Request-ID through async context. Automatic via middleware, no code changes needed.
+**Decision**:
+Use `contextvars.ContextVar` to propagate X-Request-ID through async context.
+Automatic via middleware, no code changes needed.
 
 **Rationale**:
 - contextvars is designed for this exact use case
@@ -351,8 +344,8 @@ Use `contextvars.ContextVar` to propagate X-Request-ID through async context. Au
 
 ### Retries happening too frequently
 
-**Problem**: Providers are retrying when they shouldn't  
-**Solution**: Adjust `RetryConfig`:
+**Problem**: Providers are retrying when they shouldn't
+**Solution**: Adjust `RetryConfig` on your provider:
 
 ```python
 config = RetryConfig(
@@ -363,17 +356,18 @@ config = RetryConfig(
 
 ### Tasks timing out unexpectedly
 
-**Problem**: Timeout is too aggressive  
-**Solution**: Increase timeout:
+**Problem**: Timeout is too aggressive
+**Solution**: Increase the `timeout_seconds` value in the `TimeoutConfig` you pass
+to `execute_with_timeout`:
 
-```bash
-export STARCORE_TASK_TIMEOUT_SECONDS=600  # 10 minutes
-uv run starcore blueprint run blueprint.yaml
+```python
+config = TimeoutConfig(timeout_seconds=600.0)  # 10 minutes
+await execute_with_timeout(coro, config, task_id, resource)
 ```
 
 ### Request IDs not appearing in logs
 
-**Problem**: Correlation not working  
+**Problem**: Correlation not working
 **Solution**: Check middleware is loaded in FastAPI app:
 
 ```python
@@ -390,14 +384,15 @@ app.add_middleware(RequestIdMiddleware)
 - [ ] Distributed tracing integration (Jaeger)
 - [ ] Metrics dashboard for retry/timeout stats
 - [ ] Rate limiting per provider
+- [ ] Per-task `timeout_seconds` in blueprint schema (prerequisite for scheduler wiring)
 
 ---
 
 ## Related Documentation
 
-- [Testing with Copilot](./testing-with-copilot.md) – Testing strategies
-- [Development](./development.md) – Development workflow
-- [ADRs](./adr/ADR-001-blueprint-dependency-execution.md) – Architectural decisions
+- [Testing with Copilot](./testing-with-copilot.md) — Testing strategies
+- [Development](./development.md) — Development workflow
+- [ADRs](./adr/ADR-001-blueprint-dependency-execution.md) — Architectural decisions
 
 ---
 

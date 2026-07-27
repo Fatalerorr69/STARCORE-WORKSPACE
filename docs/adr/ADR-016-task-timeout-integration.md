@@ -32,8 +32,16 @@ and there is no universal default that would be correct across both a
 default would silently break workloads that currently succeed; requiring per-task
 configuration in the blueprint schema would be a breaking change.
 
-The module is retained because the implementation is sound, its contracts are
-verified by tests, and it will be needed once per-task timeouts are introduced.
+The module is retained because its contracts are verified by tests and it will be
+needed once per-task timeouts are introduced.
+
+> **Known defect (WAIT_AND_MARK strategy):** `execute_with_timeout` at
+> `orchestrator/timeout.py` line 107 attempts to re-await the coroutine object after
+> `asyncio.wait_for` has already cancelled it. Re-awaiting a spent coroutine raises
+> `RuntimeError: cannot reuse already awaited coroutine`. The test suite does not catch
+> this because the tests monkeypatch `asyncio.wait_for` entirely, bypassing the
+> coroutine lifecycle. This defect must be fixed before the WAIT_AND_MARK strategy is
+> exposed to callers. CANCEL and IGNORE strategies are unaffected.
 
 ## Alternatives Considered
 

@@ -168,11 +168,11 @@ POST /logs/_search
 ## Testing
 
 ```bash
-# Unit test
+# Unit tests (correlation middleware, resolve_request_id, contextvars propagation)
 uv run pytest tests/test_correlation.py -v
 
-# Integration test
-uv run pytest tests/integration/test_request_correlation.py -v
+# Property-based tests
+uv run pytest tests/test_property_based_core.py -v
 
 # Manual test
 curl -H "X-Request-ID: test-123" http://localhost:8000/blueprints/run 2>&1 | grep test-123
