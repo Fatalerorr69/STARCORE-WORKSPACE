@@ -362,12 +362,15 @@ def check_github(quick: bool) -> list[CheckResult]:  # noqa: ARG001
     # SHA pinning check (R-001)
     mutable_tags: list[str] = []
     for wf_file in wf_dir.glob("*.yml"):
-        text = wf_file.read_text()
-        for m in re.finditer(r"uses:\s+(\S+@[^#\s]+)", text):
-            ref = m.group(1)
-            # SHA = 40 hex chars after @
-            if not re.search(r"@[0-9a-f]{40}", ref):
-                mutable_tags.append(f"{wf_file.name}: {ref}")
+        for line in wf_file.read_text().splitlines():
+            if line.lstrip().startswith("#"):
+                continue
+            m = re.search(r"uses:\s+(\S+@[^#\s]+)", line)
+            if m:
+                ref = m.group(1)
+                # SHA = 40 hex chars after @
+                if not re.search(r"@[0-9a-f]{40}", ref):
+                    mutable_tags.append(f"{wf_file.name}: {ref}")
 
     if mutable_tags:
         results.append(
