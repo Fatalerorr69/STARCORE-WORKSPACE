@@ -24,9 +24,7 @@ class TaskTimeoutError(Exception):
         self.task_id = task_id
         self.resource = resource
         self.timeout = timeout
-        super().__init__(
-            f"Task {task_id} (resource='{resource}') exceeded timeout of {timeout}s"
-        )
+        super().__init__(f"Task {task_id} (resource='{resource}') exceeded timeout of {timeout}s")
 
 
 class TimeoutStrategy(StrEnum):
@@ -78,40 +76,51 @@ async def execute_with_timeout(
         Result of coro.
 
     Raises:
-        TaskTimeoutError: If timeout is exceeded and strategy is CANCEL.
+        TaskTimeoutError: If timeout is exceeded and strategy is CANCEL or
+            WAIT_AND_MARK (when the grace period also expires).
     """
     if not config.is_enabled():
         return await coro
 
     timeout: float = config.timeout_seconds  # type: ignore[assignment]  # is_enabled() guarantees non-None
 
+    logger.debug(f"Executing task {task_id} (resource='{resource}') with timeout {timeout}s")
+
+    if config.strategy in (TimeoutStrategy.WAIT_AND_MARK, TimeoutStrategy.IGNORE):
+        # Wrap in a Task so asyncio.shield() protects the underlying work from
+        # being cancelled when asyncio.wait_for fires on the shield wrapper.
+        # asyncio.wait_for cancels its *argument* on timeout; shield absorbs that
+        # cancellation so the inner Task keeps running after the first deadline.
+        inner: asyncio.Task = asyncio.create_task(coro)
+        try:
+            return await asyncio.wait_for(asyncio.shield(inner), timeout=timeout)
+        except TimeoutError:
+            logger.warning(
+                f"Task {task_id} (resource='{resource}') exceeded timeout of "
+                f"{timeout}s (strategy={config.strategy.value})"
+            )
+            if config.strategy == TimeoutStrategy.IGNORE:
+                logger.warning(
+                    f"Ignoring timeout for task {task_id} (strategy=IGNORE), continuing..."
+                )
+                return await inner
+            # WAIT_AND_MARK: inner Task is still running; give it a grace period.
+            logger.warning(f"Waiting for task {task_id} to complete (may exceed timeout)")
+            try:
+                return await asyncio.wait_for(asyncio.shield(inner), timeout=timeout * 0.5)
+            except TimeoutError:
+                inner.cancel()
+                raise TaskTimeoutError(task_id, resource, timeout) from None
+
+    # CANCEL strategy (default) and unknown strategies — no shield needed.
     try:
-        logger.debug(
-            f"Executing task {task_id} (resource='{resource}') "
-            f"with timeout {timeout}s"
-        )
-        result = await asyncio.wait_for(coro, timeout=timeout)
-        return result
+        return await asyncio.wait_for(coro, timeout=timeout)
     except TimeoutError:
         logger.warning(
             f"Task {task_id} (resource='{resource}') exceeded timeout of "
             f"{timeout}s (strategy={config.strategy.value})"
         )
-
         if config.strategy == TimeoutStrategy.CANCEL:
             logger.error(f"Cancelling task {task_id} due to timeout")
             raise TaskTimeoutError(task_id, resource, timeout) from None
-        elif config.strategy == TimeoutStrategy.WAIT_AND_MARK:
-            logger.warning(f"Waiting for task {task_id} to complete (may exceed timeout)")
-            try:
-                result = await asyncio.wait_for(coro, timeout=timeout * 0.5)
-                return result
-            except TimeoutError:
-                raise TaskTimeoutError(task_id, resource, timeout) from None
-        elif config.strategy == TimeoutStrategy.IGNORE:
-            logger.warning(
-                f"Ignoring timeout for task {task_id} (strategy=IGNORE), continuing..."
-            )
-            return await coro
-        else:
-            raise ValueError(f"Unknown timeout strategy: {config.strategy}") from None
+        raise ValueError(f"Unknown timeout strategy: {config.strategy}") from None

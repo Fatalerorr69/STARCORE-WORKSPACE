@@ -202,6 +202,7 @@ Key variables:
 | `STARCORE_PROXMOX_TOKEN_NAME` | _(none)_ | Proxmox API token name |
 | `STARCORE_PROXMOX_TOKEN_VALUE` | _(none)_ | Proxmox API token value |
 | `STARCORE_PROXMOX_VERIFY_SSL` | `true` | SSL verification for Proxmox |
+| `STARCORE_POSTGRES_PASSWORD` | _(none)_ | PostgreSQL password for the `postgres` service in `docker-compose.yml`; not read by `Settings` — docker-compose only |
 
 ## Test Isolation
 
@@ -278,3 +279,112 @@ CI also builds the Docker image and smoke-tests `GET /health`. A nightly workflo
 ### Provider concurrency (ADR-013)
 
 `execute()` calls against a shared provider instance are deliberately unbounded — no `asyncio.Semaphore` exists. ADR-013 confirmed no shared-mutable-state hazard for current Docker and Proxmox SDK clients under STARCORE's actual configuration, but load testing was not performed. Three trigger conditions are defined in the ADR for adding a bounded semaphore later.
+
+## Persistent project memory (`.starcore/`)
+
+The `.starcore/` directory is a cross-session state layer for the STARCORE Autonomous Engineering Agent. New sessions should read it before deriving context from scratch.
+
+```
+.starcore/
+  README.md                  — overview and cold-start protocol
+  memory/
+    project_snapshot.md      — key facts for cold start (metrics, architecture)
+    risks.md                 — canonical risk register (source of truth)
+    user_preferences.md      — communication rules, approval gates
+    architecture.md          — architecture reference
+    decisions.md             — working decisions (pre-ADR)
+    known_issues.md          — active known issues
+    completed_work.md        — record of completed work
+    pending_work.md          — remaining work with priorities
+  sessions/
+    current.md               — human-readable session ledger (reference)
+    ledger.yaml              — machine-readable session ledger (source of truth)
+    archive/                 — past session history
+  prompts/
+    registry.yaml            — prompt catalog (PROM-001..PROM-008)
+  scripts/
+    models.py                — data models (PromptEntry, SessionEntry, CheckResult)
+    registry.py              — Prompt Registry CLI
+    ledger.py                — Session Ledger CLI
+    decision_engine.py       — Interactive Decision Engine CLI
+    impact_analyzer.py       — Change Impact Analyzer (file → module → categories)
+    regression_sentinel.py   — Regression Sentinel (detects drift vs baseline)
+    release_readiness.py     — Release Readiness Engine (12 gates)
+    qc_engine.py             — QC Orchestrator (unified report)
+    startup_protocol.py      — Startup Protocol (12-step session init, Czech report)
+    tests/                   — standalone tests for scripts/ (171 tests)
+  state/
+    regression_baseline.json — test/coverage/vulnerability + sentinel baseline
+    release.md               — release readiness gate status
+```
+
+**Cold-start protocol for new sessions:** read `memory/project_snapshot.md`, then run `uv run python .starcore/scripts/ledger.py current`, then `memory/pending_work.md` before any other action. Never store secrets or credentials in `.starcore/`.
+
+## Interactive Decision Engine
+
+After every audit, implementation, or failure, respond in the standard Decision Engine format. Full protocol: `.starcore/memory/decision_engine.md`.
+
+**Mandatory sections:** STAV / CO BYLO ZJIŠTĚNO / CO BYLO OVĚŘENO / RIZIKA / DOPORUČENÍ / DOPAD / RIZIKO / ROLLBACK / DALŠÍ KROK
+
+**Default language:** Czech for all user-facing text; technical identifiers unchanged.
+
+**Safety gates** — require explicit confirmation before executing:
+`merge` · `push` · `delete` · `reset` · `--force` · `infrastructure` · `production` · `secret` / `credential` / `password` / `token`
+
+**CLI tools:**
+```bash
+uv run python .starcore/scripts/decision_engine.py render --file report.yaml
+uv run python .starcore/scripts/decision_engine.py parse-choice "Varianta 1"
+uv run python .starcore/scripts/decision_engine.py check-safety "git push --force"
+uv run python .starcore/scripts/decision_engine.py format
+uv run python .starcore/scripts/decision_engine.py log --decision "..."
+uv run python .starcore/scripts/tests/test_decision_engine.py   # 49 tests
+```
+
+## Startup Protocol
+
+Run at the beginning of every new session to produce a Czech session status report with a 6-option decision menu. Implements the 12-step startup flow: identify repo → branch → HEAD → worktree → project state → last session → risks → pending work → decisions → Regression Sentinel → GitHub state → Czech report.
+
+```bash
+uv run python .starcore/scripts/startup_protocol.py           # full (runs sentinel + github checks)
+uv run python .starcore/scripts/startup_protocol.py --quick   # skip slow QC checks
+uv run python .starcore/scripts/startup_protocol.py --json    # machine-readable output
+uv run python .starcore/scripts/tests/test_startup_protocol.py   # 54 tests
+```
+
+Exit code: 1 if Regression Sentinel detects a regression (FAIL), 0 otherwise.
+
+## QC Engines
+
+Three quality-control engines run against the repository without modifying it.
+
+**Change Impact Analyzer** — maps `git diff` → module → impact categories using actual repo evidence (no speculation):
+```bash
+uv run python .starcore/scripts/impact_analyzer.py analyze
+uv run python .starcore/scripts/impact_analyzer.py analyze --since HEAD~1
+uv run python .starcore/scripts/impact_analyzer.py module packages/core/main.py
+```
+
+**Regression Sentinel** — detects drift across 7 dimensions (test count, API routes, CLI commands, config fields, ADR count, workflow count, lock sync):
+```bash
+uv run python .starcore/scripts/regression_sentinel.py check
+uv run python .starcore/scripts/regression_sentinel.py diff
+uv run python .starcore/scripts/regression_sentinel.py update  # only after confirmed CI pass
+```
+
+**Release Readiness Engine** — evaluates 12 gates (BUILD/TEST/SECURITY/DEPENDENCIES/PACKAGE/ARTIFACT/DOCUMENTATION/GITHUB/GOVERNANCE/DEPLOYMENT/BACKUP/RECOVERY). UNKNOWN ≠ PASS.
+```bash
+uv run python .starcore/scripts/release_readiness.py evaluate --quick
+uv run python .starcore/scripts/release_readiness.py evaluate           # full (slow)
+uv run python .starcore/scripts/release_readiness.py gate SECURITY
+```
+
+**QC Orchestrator** — unified report from all three engines:
+```bash
+uv run python .starcore/scripts/qc_engine.py run --quick
+uv run python .starcore/scripts/qc_engine.py run --impact --since HEAD~1
+uv run python .starcore/scripts/tests/test_qc_engines.py   # 68 tests
+```
+
+Full protocol: `.starcore/memory/qc_engines.md`
+```

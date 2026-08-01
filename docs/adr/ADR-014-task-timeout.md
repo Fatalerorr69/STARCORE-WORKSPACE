@@ -74,10 +74,11 @@ await execute_with_timeout(
 
 ## Environment Variables
 
-```bash
-STARCORE_TASK_TIMEOUT_SECONDS=300
-STARCORE_TASK_TIMEOUT_STRATEGY=cancel  # cancel|wait_and_mark|ignore
-```
+> **Planned, not yet implemented.** No `STARCORE_TASK_TIMEOUT_SECONDS` or
+> `STARCORE_TASK_TIMEOUT_STRATEGY` field exists in `core/config.py`. Scheduler
+> wiring is deferred pending per-task `timeout_seconds` in the blueprint schema
+> (see ADR-016). Once that field is added, a per-task `TimeoutConfig` can be
+> constructed from it at runtime without any global env var.
 
 ## Rationale
 
@@ -94,7 +95,8 @@ STARCORE_TASK_TIMEOUT_STRATEGY=cancel  # cancel|wait_and_mark|ignore
 3. **Configuration-driven** vs. hardcoded
    - Different environments need different timeouts
    - Homelabs may have slow I/O, enterprise datacenters are fast
-   - Users should control timeout behavior
+   - Users should control timeout behavior per task via the blueprint schema
+     (once per-task `timeout_seconds` is added; see ADR-016)
 
 4. **Backward compatible**
    - Timeout disabled by default (timeout_seconds=None)
@@ -116,8 +118,8 @@ STARCORE_TASK_TIMEOUT_STRATEGY=cancel  # cancel|wait_and_mark|ignore
 - ❌ Adds complexity to provider implementations
 
 ### Neutral
-- Requires environment-specific configuration
 - Adds observability/debugging capability
+- Requires per-task timeout tuning once the blueprint schema supports it
 
 ## Alternatives Considered
 
@@ -139,15 +141,11 @@ STARCORE_TASK_TIMEOUT_STRATEGY=cancel  # cancel|wait_and_mark|ignore
 ## Testing
 
 ```bash
-# Unit test
+# Unit tests (covering all TimeoutConfig / TimeoutStrategy / execute_with_timeout paths)
 uv run pytest tests/test_timeout.py -v
 
-# Integration test
-uv run pytest tests/integration/test_scheduler_timeout.py -v
-
-# Manual test
-export STARCORE_TASK_TIMEOUT_SECONDS=5
-uv run starcore blueprint run slow-blueprint.yaml --parallel
+# Property-based tests
+uv run pytest tests/test_property_based_timeout.py -v
 ```
 
 ## References

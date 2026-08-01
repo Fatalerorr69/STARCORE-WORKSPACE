@@ -18,12 +18,8 @@ _ANY_STRING = st.text(min_size=0, max_size=200)
 
 # Restricted to chars absent from REDACTED_PLACEHOLDER ("***REDACTED***") and free
 # of URL metacharacters, so postgres DSNs constructed from these always parse correctly.
-_SAFE_SECRET = st.text(
-    alphabet="abcdefghijklmnopqrstuvwxyz0123456789", min_size=1, max_size=40
-)
-_HOSTNAME = st.text(
-    alphabet="abcdefghijklmnopqrstuvwxyz0123456789", min_size=3, max_size=20
-)
+_SAFE_SECRET = st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789", min_size=1, max_size=40)
+_HOSTNAME = st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789", min_size=3, max_size=20)
 
 
 # ── redact_database_url invariants ─────────────────────────────────────────────
@@ -55,9 +51,7 @@ def test_redact_database_url_sqlite_passthrough(db_name: str) -> None:
 
 
 @given(text=_ANY_STRING, secret=_SAFE_SECRET)
-def test_scrub_configured_secrets_never_returns_configured_secret(
-    text: str, secret: str
-) -> None:
+def test_scrub_configured_secrets_never_returns_configured_secret(text: str, secret: str) -> None:
     """scrub_configured_secrets never returns text containing the configured secret."""
     s = Settings.model_construct(
         api_key=secret, proxmox_token_value=None, anthropic_api_key=None, ai_api_key=None

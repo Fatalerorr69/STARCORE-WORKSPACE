@@ -1,7 +1,7 @@
 # STARCORE Platform: Complete Integration & Enhancement Package
 
-**Branch**: `chore/copilot-integration-and-enhancements`  
-**Status**: Ready for Review & Merge  
+**Branch**: `main` (merged from `chore/copilot-integration-and-enhancements`)
+**Status**: Merged
 **Date**: 2026-07-26
 
 ---
@@ -58,8 +58,9 @@ This PR delivers a **complete production-ready package** for STARCORE Platform:
 ### For End Users
 
 ```bash
-# Checkout the branch
-git checkout chore/copilot-integration-and-enhancements
+# Clone the repository (work against main — the feature branch is merged)
+git clone https://github.com/Fatalerorr69/starcore-platform.git
+cd starcore-platform
 
 # Run automated setup (installs Copilot, configures IDE)
 bash scripts/setup-copilot.sh
@@ -141,7 +142,7 @@ await execute_with_timeout(
 
 **Benefits**:
 - ✅ Prevents orchestrator hangs
-- ✅ Environment-specific configuration
+- ✅ Configurable per call site via `TimeoutConfig`
 - ✅ Better error diagnostics
 - ✅ Compatible with parallel execution
 
@@ -185,19 +186,6 @@ curl -H "X-Request-ID: my-req-123" http://localhost:8000/blueprints/run
 ---
 
 ## 🔧 Configuration
-
-### Environment Variables
-
-```bash
-# Retry behavior
-STARCORE_PROVIDER_RETRY_MAX_RETRIES=3
-STARCORE_PROVIDER_RETRY_BASE_DELAY=1.0
-STARCORE_PROVIDER_RETRY_MAX_DELAY=30.0
-
-# Task timeout
-STARCORE_TASK_TIMEOUT_SECONDS=300
-STARCORE_TASK_TIMEOUT_STRATEGY=cancel  # cancel|wait_and_mark|ignore
-```
 
 ### Per-Provider Configuration
 
@@ -260,12 +248,6 @@ uv run pytest tests/test_timeout.py -v
 
 # Request correlation
 uv run pytest tests/test_correlation.py -v
-```
-
-### Integration Tests
-```bash
-# Full pipeline with retry and timeout
-uv run pytest tests/integration/ -v
 ```
 
 ### Code Quality

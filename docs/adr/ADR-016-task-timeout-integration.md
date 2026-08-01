@@ -32,8 +32,17 @@ and there is no universal default that would be correct across both a
 default would silently break workloads that currently succeed; requiring per-task
 configuration in the blueprint schema would be a breaking change.
 
-The module is retained because the implementation is sound, its contracts are
-verified by tests, and it will be needed once per-task timeouts are introduced.
+The module is retained because its contracts are verified by tests and it will be
+needed once per-task timeouts are introduced.
+
+> **Defect fixed (2026-07-27):** The original implementation re-awaited the coroutine
+> object after `asyncio.wait_for` had already cancelled it, raising
+> `RuntimeError: cannot reuse already awaited coroutine`. The fix wraps the coroutine
+> in `asyncio.create_task` and protects it with `asyncio.shield` so the inner task
+> keeps running after the first deadline fires. Tests were updated from
+> `monkeypatch.setattr(asyncio, "wait_for", ...)` to real async timing, which now
+> exercise the actual coroutine lifecycle. All three strategies (CANCEL, WAIT_AND_MARK,
+> IGNORE) are verified correct.
 
 ## Alternatives Considered
 

@@ -97,8 +97,7 @@ def test_calculate_delay_no_jitter_never_exceeds_max(
 def test_calculate_delay_no_jitter_monotone_with_attempt(
     base_delay: float, max_delay: float, exp_base: float, attempt_a: int, attempt_b: int
 ) -> None:
-    """With jitter=False, a higher attempt number produces a delay >= a lower one (up to max_delay).
-    """
+    """With jitter=False, higher attempt number produces delay >= lower one (up to max_delay)."""
     assume(attempt_a <= attempt_b)
     config = RetryConfig(
         base_delay=base_delay,

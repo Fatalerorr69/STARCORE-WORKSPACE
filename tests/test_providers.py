@@ -1481,3 +1481,101 @@ async def test_proxmox_wait_for_task_raises_timeout_when_task_never_stops():
     with patch("asyncio.sleep", new=_AsyncMock()):
         with pytest.raises(TimeoutError, match="did not complete"):
             await provider._wait_for_task("pve", "UPID:pve:test", timeout=0.001, interval=1.0)
+
+
+# ---------------------------------------------------------------------------
+# R-012: RuntimeError guards — coverage for branches introduced by replacing
+# `assert self._client is not None` with `if self._client is None: raise`.
+# Private methods are tested directly because execute() has its own early
+# guard that prevents reaching them with _client=None through the public API.
+# ---------------------------------------------------------------------------
+
+
+def test_proxmox_resource_endpoint_raises_when_not_connected():
+    provider = ProxmoxProvider()
+    with pytest.raises(RuntimeError, match="not connected"):
+        provider._resource_endpoint("pve", 100, "vm")
+
+
+async def test_proxmox_create_resource_raises_when_not_connected():
+    from orchestrator.task import Task
+
+    provider = ProxmoxProvider()
+    task = Task(id="1", provider="proxmox", action="create", resource="vm")
+    with pytest.raises(RuntimeError, match="not connected"):
+        await provider._create_resource(task, "vm")
+
+
+async def test_proxmox_destroy_resource_raises_when_not_connected():
+    from orchestrator.task import Task
+
+    provider = ProxmoxProvider()
+    task = Task(id="1", provider="proxmox", action="destroy", resource="vm")
+    with pytest.raises(RuntimeError, match="not connected"):
+        await provider._destroy_resource(task, "vm")
+
+
+async def test_proxmox_snapshot_create_raises_when_not_connected():
+    from orchestrator.task import Task
+
+    provider = ProxmoxProvider()
+    task = Task(id="1", provider="proxmox", action="snapshot-create", resource="vm")
+    with pytest.raises(RuntimeError, match="not connected"):
+        await provider._snapshot_create(task, "vm")
+
+
+async def test_proxmox_snapshot_list_raises_when_not_connected():
+    from orchestrator.task import Task
+
+    provider = ProxmoxProvider()
+    task = Task(id="1", provider="proxmox", action="snapshot-list", resource="vm")
+    with pytest.raises(RuntimeError, match="not connected"):
+        await provider._snapshot_list(task, "vm")
+
+
+async def test_proxmox_snapshot_delete_raises_when_not_connected():
+    from orchestrator.task import Task
+
+    provider = ProxmoxProvider()
+    task = Task(id="1", provider="proxmox", action="snapshot-delete", resource="vm")
+    with pytest.raises(RuntimeError, match="not connected"):
+        await provider._snapshot_delete(task, "vm")
+
+
+async def test_proxmox_snapshot_rollback_raises_when_not_connected():
+    from orchestrator.task import Task
+
+    provider = ProxmoxProvider()
+    task = Task(id="1", provider="proxmox", action="snapshot-rollback", resource="vm")
+    with pytest.raises(RuntimeError, match="not connected"):
+        await provider._snapshot_rollback(task, "vm")
+
+
+async def test_proxmox_snapshot_rollback_preview_raises_when_not_connected():
+    from orchestrator.task import Task
+
+    provider = ProxmoxProvider()
+    task = Task(id="1", provider="proxmox", action="snapshot-rollback-preview", resource="vm")
+    with pytest.raises(RuntimeError, match="not connected"):
+        await provider._snapshot_rollback_preview(task, "vm")
+
+
+async def test_proxmox_wait_for_task_raises_when_not_connected():
+    provider = ProxmoxProvider()
+    with pytest.raises(RuntimeError, match="not connected"):
+        await provider._wait_for_task("pve", "UPID:pve:test")
+
+
+def test_docker_ensure_container_raises_when_not_connected():
+    from orchestrator.task import Task
+
+    provider = DockerProvider()
+    task = Task(id="1", provider="docker", action="create", resource="app")
+    with pytest.raises(RuntimeError, match="not connected"):
+        provider._ensure_container(task)
+
+
+def test_docker_container_action_raises_when_not_connected():
+    provider = DockerProvider()
+    with pytest.raises(RuntimeError, match="not connected"):
+        provider._container_action("my-app", "start")

@@ -7,100 +7,88 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-- Property-based (Hypothesis) tests for ADR-010 (Dependency Failure Semantics): 8 new
-  tests in `test_property_based_dependency_semantics.py` covering the success-gate
-  invariant across both execution paths (Scheduler and BlueprintExecutor) — SKIPPED
-  dependency propagates, FAILED dependency propagates, transitive chain propagation for
-  any length (2–6), independent tasks unaffected by sibling failure, and
-  `provider.execute()` never called for SKIPPED_DEPENDENCY_FAILED tasks.
-- Test catalog (`reports/starcore-tests-catalog.md`) regenerated: 43 test files,
-  558 AST functions (567 pytest-collected), up from the stale sprint-019 snapshot.
-- Test matrix: "Dependency failure semantics (ADR-010)" row gains property-based
-  checkmark and `test_property_based_dependency_semantics.py` reference.
+## [0.2.0] — 2026-08-01
 
-### Added
-- Property-based (Hypothesis) tests for `BlueprintExecutor` (the sequential execution
-  path): 5 new tests mirroring the existing `Scheduler` property tests — task count,
-  terminal-status, all-succeed, unregistered-provider, and dependency-failure-propagation
-  invariants. Hypothesis found that the unregistered-provider invariant needed a
-  dependency-free blueprint to hold cleanly (a dependent task correctly reaches
-  SKIPPED_DEPENDENCY_FAILED rather than SKIPPED).
-- Test matrix corrected: "Event bus", "Plugins", "Persistence", and "Request
-  correlation" already had property-based coverage in `test_property_based_core.py`
-  that was never reflected in `docs/test-matrix.md`.
+Security hardening cycle, observability improvements, and cross-session memory layer.
+Covers sprints 016–024 and the STARCORE autonomous engineering session (2026-07-26 – 2026-08-01).
 
-### Fixed
-- **`mkdocs build --strict` CI failure** (pre-existing from PR #103): four files were
-  orphaned from `mkdocs.yml` nav and two contained broken internal links. Wired
-  `ADR-014-task-timeout.md`, `ADR-015-request-correlation.md`, `ENHANCEMENTS.md`, and
-  `testing-with-copilot.md` into nav; fixed broken links; renamed
-  `ADR-014-task-timeout-integration.md` → `ADR-016-task-timeout-integration.md` to
-  resolve the numbering collision. Added correction note to `ADR-014-task-timeout.md`
-  flagging that `STARCORE_TASK_TIMEOUT_SECONDS`/`STARCORE_TASK_TIMEOUT_STRATEGY` are
-  not wired (see ADR-016 for the deliberate deferral).
+### Security
 
-### Added
-- Property-based (Hypothesis) tests for `core.security`: 6 new tests covering
-  `redact_database_url` (never-raises, postgres password masked, SQLite passthrough) and
-  `scrub_configured_secrets` (never returns configured secret, idempotent, no-op when no
-  secrets). Hypothesis found and fixed a subtle test-invariant bug: `password not in result`
-  was too broad (password chars can appear in the hostname); corrected to
-  `f":{password}@" not in result`.
-- ADR-014 (Task Timeout Integration — Deliberate Deferral): documents that
-  `execute_with_timeout` in `orchestrator/timeout.py` is intentionally not wired into
-  `Scheduler` or `BlueprintExecutor`, with trigger conditions for revisiting.
-- Test matrix updated: "Secret redaction" row gains property-based checkmark.
-
-### Added
-- Property-based (Hypothesis) tests for `provider_sdk.retry` and `orchestrator.timeout`:
-  17 new tests covering `calculate_delay` bounds/monotonicity/determinism,
-  `RetryableError` attribute preservation, `attempt_with_retry` single-attempt and
-  non-retryable-propagation invariants, `TimeoutConfig.is_enabled` for all `float | None`
-  inputs, `TaskTimeoutError` attribute and str invariants, and the disabled-path
-  pass-through of `execute_with_timeout`.
-- Test matrix (`docs/test-matrix.md`) updated with rows for retry, timeout, and request
-  correlation; test catalog (`reports/starcore-tests-catalog.md`) brought current with all
-  52 tests added since sprint-019.
-
-
+- **GitHub Actions SHA pinning (R-001)**: 22 mutable `@vN` action references replaced
+  with immutable commit SHAs in all 7 workflow files; version preserved as inline comment.
+- **SBOM + image signing (R-010)**: `docker-publish.yml` now generates a SPDX-JSON SBOM
+  via `anchore/sbom-action@v0.24.0` and signs every pushed image via `cosign sign` (keyless
+  OIDC, no key management); SBOM attached as a verifiable `cosign attest` predicate on the
+  image digest.
+- **Dependabot auto-merge scope (R-008)**: auto-merge now restricted to `pip` ecosystem
+  only; GitHub Actions updates require manual review before merge.
+- **Remove inactive jekyll-gh-pages.yml (R-007)**: project uses MkDocs; the Jekyll
+  workflow was unreachable dead attack surface.
+- **assert guards → explicit RuntimeError (R-012)**: 11 `assert self._client is not None`
+  statements in `proxmox/provider.py` (9×) and `docker/provider.py` (2×) replaced with
+  `if/raise RuntimeError`; `assert` is silently disabled under Python `-O`.
+- **Centralized secret redaction**: `redact_database_url()` masks credentials in
+  `STARCORE_DATABASE_URL` before `/health`/`/diagnostics` can echo them; `scrub_configured_secrets()`
+  strips configured secrets from provider exception text.
+- CodeQL static analysis workflow added, running alongside Bandit/gitleaks/pip-audit.
 
 ### Fixed
-- **Broken `provider_sdk` import** (`ProviderException` → `ProviderError`): the wrong
-  class name caused every test to fail at collection time with `ImportError`; corrected
-  to `ProviderError`, the actual class in `provider_sdk/exceptions.py`.
-- **`classify_client_platform` marker priority**: script markers (curl, python-httpx,
-  …) are now checked before browser markers so a UA containing both (e.g. `curlchrome`)
-  correctly classifies as `cli-or-script` rather than `browser-desktop`. Found by a
-  Hypothesis property test.
-- Lint and type violations introduced by external PRs in `retry.py`, `timeout.py`,
-  `correlation.py`, and `provider_sdk/__init__.py` (ruff UP035/UP042/UP045/UP041×2/B904/
-  E501/F841/I001; pyright `float | None` narrowing in `execute_with_timeout`).
+
+- **Timeout coroutine reuse RuntimeError (R-005)**: `execute_with_timeout()` re-awaited
+  a spent coroutine after `asyncio.wait_for` cancellation. Fixed by wrapping the coroutine
+  in `asyncio.create_task()` before calling `asyncio.shield()` for WAIT_AND_MARK and IGNORE
+  strategies. Tests rewritten from monkeypatching to real async timing.
+- **Dependency failure semantics enforced (ADR-010)**: a task whose `depends_on` prerequisite
+  finished `FAILED`, `SKIPPED`, or `SKIPPED_DEPENDENCY_FAILED` is now marked
+  `SKIPPED_DEPENDENCY_FAILED` and never reaches `provider.execute()`, transitively across
+  scheduler waves — in both `BlueprintExecutor` and `Scheduler` paths.
+- **`mkdocs build --strict` CI failure**: four doc files orphaned from `mkdocs.yml` nav,
+  two broken internal links, ADR numbering collision resolved.
+- **`classify_client_platform` marker priority**: script markers now checked before browser
+  markers; found by a Hypothesis property test.
+- **`provider_sdk` import error** (`ProviderException` → `ProviderError`): wrong class
+  name caused test suite to fail at collection.
+- `docker compose config` no longer fails when `STARCORE_POSTGRES_PASSWORD` is unset
+  (switched to default-to-empty interpolation; postgres service still refuses to start
+  with an empty password when the scaffold profile is active).
+- Ruff format gate (`ruff format --check .`) added to `ci.yml` (R-006); 8 non-compliant
+  source files reformatted.
+- Dead code removed from Proxmox provider (R-009): permanently unreachable
+  `if resource_kind == "lxc"` block deleted.
+- `release.yml` quality gate brought to parity with `ci.yml`: now runs `uv lock --check`,
+  `pip-audit`, Bandit, gitleaks, `alembic check`, `mkdocs build --strict`, and
+  `--cov-fail-under=100`.
 
 ### Added
-- Tests for four untested modules added by PR #100: `provider_sdk.retry`,
-  `orchestrator.timeout`, `core.correlation`, `core.request_id_middleware` (35 new
-  tests; 531 total, 100% coverage restored).
 
-
-
-### Fixed
-- **Dependency failure semantics now enforced, not just documented** (ADR-010): a task whose dependency finished `FAILED`, `SKIPPED`, or `SKIPPED_DEPENDENCY_FAILED` is itself marked `SKIPPED_DEPENDENCY_FAILED` and never reaches `provider.execute()`, transitively across scheduler waves — in both the sequential (`BlueprintExecutor`) and parallel (`Scheduler`) paths. Previously `depends_on` only gated on the prerequisite having *finished*, not succeeded (flagged as an open question in the 0.1.0 audit, now resolved as a deliberate semantics fix).
-- `docker compose config` (and `docker compose up -d --build api`, the documented non-scaffold workflow) no longer fails when `STARCORE_POSTGRES_PASSWORD` is unset — Compose interpolates every service's environment block at parse time regardless of active profile; switched to a default-to-empty interpolation, with the official postgres image still refusing to start on an empty password if the scaffold profile is actually enabled.
-- `release.yml` quality gate brought to parity with `ci.yml`: was only `ruff check` + `pyright` + `pytest --cov-fail-under=80`, now also runs `uv lock --check`, `pip-audit`, Bandit, gitleaks, `alembic check`, and `mkdocs build --strict`, at the same 100% coverage floor as every other gate.
-
-### Added
-- Request correlation: every HTTP response carries `X-Request-ID` (caller-supplied if present and well-formed, generated otherwise), bound to every log line emitted while handling that request.
-- `starcore snapshot rollback` shows a dry-run diff of what will change before prompting for confirmation (unless `--yes`), matching the existing `snapshot delete` confirmation pattern.
-- Centralized secret redaction (`packages/core/security.py`): `redact_database_url()` masks credentials in `STARCORE_DATABASE_URL` before `/health`/`/diagnostics` can echo them back; `scrub_configured_secrets()` strips any configured secret found verbatim in provider exception text.
-- ADR-010 (Dependency Failure Semantics), ADR-011 (Plugin Trust Boundary — plugins are **not sandboxed**), ADR-012 (API Authentication Model), ADR-013 (Provider Concurrency Policy — no rate limit for now, by deliberate decision with stated trigger conditions for revisiting).
-- CodeQL static analysis workflow, running alongside Bandit/gitleaks/pip-audit.
-- Docker: multi-stage build; final image drops dev dependencies and the runtime PyPI dependency.
-- New reference documentation, all wired into the MkDocs nav: CLI Reference, API Reference, Security, Plugins, Test Matrix, Current Architecture State, Test Strategy, Operations Runbook.
-- `uv run mkdocs build --strict` added as a CI gate, catching orphaned/unreachable doc pages.
+- **Request correlation (ADR-015)**: every HTTP response carries `X-Request-ID`
+  (caller-supplied if valid, generated otherwise), bound to every log line emitted while
+  handling that request.
+- **`starcore snapshot rollback` dry-run diff**: shows what will change before prompting
+  for confirmation (unless `--yes`), matching `snapshot delete` confirmation pattern.
+- **`.starcore/` cross-session memory layer**: persistent project state versioned in the
+  repo — risk register, session ledger, prompt registry, interactive decision engine with
+  safety gates, Change Impact Analyzer, Regression Sentinel (7 dimensions), Release
+  Readiness Engine (12 gates), and Startup Protocol (12-step session init with Czech
+  report + 6-option decision menu). 171 standalone tests.
+- ADR-010 (Dependency Failure Semantics), ADR-011 (Plugin Trust Boundary), ADR-012
+  (API Authentication Model), ADR-013 (Provider Concurrency Policy), ADR-014 (Task
+  Timeout Support), ADR-015 (Request Correlation), ADR-016 (Timeout Deferral).
+- New reference documentation wired into MkDocs nav: CLI Reference, API Reference,
+  Security, Plugins, Test Matrix, Architecture State, Test Strategy, Operations Runbook.
+- Docker: multi-stage build; final image drops dev dependencies.
+- 87 new property-based (Hypothesis) tests across 6 new files: retry, timeout, security,
+  dependency semantics, executor, core.
 
 ### Changed
-- README's "What's Planned, Not Built Yet" section (which had drifted — several listed items were already implemented) replaced with "Production Limitations" (the actual security-relevant caveats, cross-referenced to ADR-011/012/013) and a shorter, accurate "Roadmap / Vision" section.
+
+- README "What's Planned, Not Built Yet" section (which had drifted) replaced with
+  "Production Limitations" and a shorter, accurate "Roadmap / Vision" section.
+- `STARCORE_POSTGRES_PASSWORD` documented in CLAUDE.md config table (R-016); noted as
+  docker-compose only — not read by `Settings`.
+- Wheel build completeness (R-018): `plugins` added to `packages`; `migrations/` and
+  `alembic.ini` added to `force-include`; wheel entries: 58 → 65.
+- Test count: 493 (0.1.0) → 580 (0.2.0); 100% coverage maintained throughout.
 
 Test count: 449 → 493 (100% coverage maintained throughout).
 

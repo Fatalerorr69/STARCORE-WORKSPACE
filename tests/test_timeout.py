@@ -70,15 +70,27 @@ def test_execute_with_timeout_task_completes_before_timeout():
     assert result == "fast"
 
 
-def test_execute_with_timeout_cancel_strategy_raises(monkeypatch):
-    async def mock_wait_for(coro, timeout):
-        coro.close()
-        raise TimeoutError()
+def test_execute_with_timeout_wait_and_mark_completes_before_timeout():
+    async def fast():
+        return "fast"
 
-    monkeypatch.setattr(asyncio, "wait_for", mock_wait_for)
+    config = TimeoutConfig(timeout_seconds=10.0, strategy=TimeoutStrategy.WAIT_AND_MARK)
+    result = asyncio.run(execute_with_timeout(fast(), config, "t1", "r1"))
+    assert result == "fast"
 
+
+def test_execute_with_timeout_ignore_completes_before_timeout():
+    async def fast():
+        return "fast"
+
+    config = TimeoutConfig(timeout_seconds=10.0, strategy=TimeoutStrategy.IGNORE)
+    result = asyncio.run(execute_with_timeout(fast(), config, "t1", "r1"))
+    assert result == "fast"
+
+
+def test_execute_with_timeout_cancel_strategy_raises():
     async def slow():
-        pass
+        await asyncio.sleep(10)
 
     config = TimeoutConfig(timeout_seconds=0.01, strategy=TimeoutStrategy.CANCEL)
     with pytest.raises(TaskTimeoutError) as exc_info:
@@ -88,51 +100,31 @@ def test_execute_with_timeout_cancel_strategy_raises(monkeypatch):
     assert exc_info.value.timeout == 0.01
 
 
-def test_execute_with_timeout_wait_and_mark_second_timeout_raises(monkeypatch):
-    call_count = [0]
-
-    async def mock_wait_for(coro, timeout):
-        call_count[0] += 1
-        coro.close()
-        raise TimeoutError()
-
-    monkeypatch.setattr(asyncio, "wait_for", mock_wait_for)
-
+def test_execute_with_timeout_wait_and_mark_second_timeout_raises():
     async def slow():
-        pass
+        await asyncio.sleep(10)
 
     config = TimeoutConfig(timeout_seconds=0.01, strategy=TimeoutStrategy.WAIT_AND_MARK)
     with pytest.raises(TaskTimeoutError):
         asyncio.run(execute_with_timeout(slow(), config, "t1", "r1"))
-    assert call_count[0] == 2
 
 
-def test_execute_with_timeout_wait_and_mark_succeeds_on_second_try(monkeypatch):
-    call_count = [0]
-
-    async def mock_wait_for(coro, timeout):
-        call_count[0] += 1
-        if call_count[0] == 1:
-            raise TimeoutError()
-        return await coro
-
-    monkeypatch.setattr(asyncio, "wait_for", mock_wait_for)
-
-    async def fast():
+def test_execute_with_timeout_wait_and_mark_succeeds_on_second_try():
+    # Coroutine sleeps 0.12 s; first timeout fires at 0.1 s leaving 0.02 s
+    # remaining.  Grace period is 0.1 * 0.5 = 0.05 s, so the task finishes
+    # inside the grace window and the result is returned normally.
+    async def slightly_slow():
+        await asyncio.sleep(0.12)
         return "done"
 
-    config = TimeoutConfig(timeout_seconds=0.01, strategy=TimeoutStrategy.WAIT_AND_MARK)
-    result = asyncio.run(execute_with_timeout(fast(), config, "t1", "r1"))
+    config = TimeoutConfig(timeout_seconds=0.1, strategy=TimeoutStrategy.WAIT_AND_MARK)
+    result = asyncio.run(execute_with_timeout(slightly_slow(), config, "t1", "r1"))
     assert result == "done"
 
 
-def test_execute_with_timeout_ignore_strategy_continues(monkeypatch):
-    async def mock_wait_for(coro, timeout):
-        raise TimeoutError()
-
-    monkeypatch.setattr(asyncio, "wait_for", mock_wait_for)
-
+def test_execute_with_timeout_ignore_strategy_continues():
     async def eventual():
+        await asyncio.sleep(0.05)
         return "eventual"
 
     config = TimeoutConfig(timeout_seconds=0.01, strategy=TimeoutStrategy.IGNORE)
@@ -140,20 +132,16 @@ def test_execute_with_timeout_ignore_strategy_continues(monkeypatch):
     assert result == "eventual"
 
 
-def test_execute_with_timeout_unknown_strategy_raises(monkeypatch):
-    async def mock_wait_for(coro, timeout):
-        coro.close()
-        raise TimeoutError()
-
-    monkeypatch.setattr(asyncio, "wait_for", mock_wait_for)
-
-    # str subclass with .value so the f-string in the warning doesn't crash
+def test_execute_with_timeout_unknown_strategy_raises():
     class _FakeStrategy(str):
         value = "unknown_strategy"
 
     async def slow():
-        pass
+        await asyncio.sleep(10)
 
-    config = TimeoutConfig(timeout_seconds=0.01, strategy=_FakeStrategy("unknown_strategy"))  # type: ignore[arg-type]
+    config = TimeoutConfig(
+        timeout_seconds=0.01,
+        strategy=_FakeStrategy("unknown_strategy"),  # type: ignore[arg-type]
+    )
     with pytest.raises(ValueError, match="Unknown timeout strategy"):
         asyncio.run(execute_with_timeout(slow(), config, "t1", "r1"))
