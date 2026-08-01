@@ -1,7 +1,63 @@
 # Completed Work — STARCORE Platform
 
 > Chronologický záznam dokončené práce po sezeních.
-> **Poslední aktualizace:** 2026-07-27
+> **Poslední aktualizace:** 2026-08-01 (correlation ID verification)
+
+---
+
+## Sezení: starcore-autonomous-engineering-4p3tlj (pokračování, 2026-08-01, correlation ID)
+
+### P2 #1 — Correlation ID propagation verification
+
+**Cíl:** Ověřit, že `request_id` z HTTP middleware skutečně prostupuje do provider log lines.
+
+**Výsledek:** COMPLETED — 2 testy přidány, 582/582, 100% coverage (commit `1e9c6c5`)
+
+#### Zjištění
+
+- Propagace fungovala **od začátku** — žádné změny kódu nebyly potřeba
+- `logger.contextualize()` v `_request_id_middleware` (core/main.py) používá Python `contextvars`
+- `asyncio.to_thread()` (Python 3.10+) kopíruje aktuální `contextvars.Context` do nového threadu
+- Tedy: HTTP → middleware → orchestrator → provider.execute() → asyncio.to_thread() → vše nese request_id
+
+#### Přidané testy (`tests/test_request_id.py`)
+
+1. `test_loguru_context_propagates_through_asyncio_to_thread` — unit test, čistá asyncio/loguru propagace bez HTTP
+2. `test_request_id_propagates_to_provider_execute_log` — integration test: X-Request-ID → BlueprintExecutor → _LoggingProvider.execute() → INFO log v async i thread kontextu
+
+---
+
+## Sezení: starcore-autonomous-engineering-4p3tlj (pokračování, 2026-08-01)
+
+### Release v0.2.0 — kompletní vydání
+
+**Cíl:** Uzavřít R-007/R-008/R-010, mergovat PR #111, vytvořit tag v0.2.0, vydat GitHub Release.
+
+**Výsledek:** COMPLETED — GitHub Release "STARCORE Platform v0.2.0" vydán 2026-08-01T16:07:45Z
+
+#### Dokončeno
+
+- **R-016** (STARCORE_POSTGRES_PASSWORD docs): commit `74fcc71`
+- **R-010** (SBOM + cosign): commit `71f81c8` — `anchore/sbom-action@v0.24.0` + `cosign sign` + `cosign attest` v `docker-publish.yml`
+- **R-007** (smazán jekyll-gh-pages.yml): commit `0f05bc7`
+- **R-008** (Dependabot auto-merge omezeno na pip): commit `0f05bc7`
+- **README** test count update: 567 → 580
+- **PR #111** mergenut do main (commit `59924f2`)
+- **Version bump** 0.1.0 → 0.2.0 + CHANGELOG [0.2.0] sekce: commit `2dd6fc8`
+- **Tag v0.2.0** vytvořen via `manual-tag.yml` (workflow run `30707097263`)
+- **release.yml** upraven — přidán `workflow_dispatch` trigger + `RELEASE_TAG` env var + `uv lock --no-upgrade`: commit `784f3b3` (main)
+- **GitHub Release** vytvořen via release.yml workflow_dispatch (run `30707384660`, conclusion: success, 1m 41s)
+
+#### Stav projektu po vydání
+
+| Metrika | Hodnota |
+|---------|---------|
+| Verze | 0.2.0 |
+| Tests | 580/580, 100% coverage |
+| Všechna rizika | CLOSED (R-001..R-018) |
+| GitHub Release | v0.2.0 — published |
+| main HEAD | `784f3b3` |
+| Feature branch | `d3d5759` (rebased on main) |
 
 ---
 
