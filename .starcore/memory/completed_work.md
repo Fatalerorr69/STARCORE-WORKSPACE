@@ -1,7 +1,38 @@
 # Completed Work — STARCORE Platform
 
 > Chronologický záznam dokončené práce po sezeních.
-> **Poslední aktualizace:** 2026-08-01 (v0.3.0 release)
+> **Poslední aktualizace:** 2026-08-01 (v0.4.0 release)
+
+---
+
+## Sezení: starcore-autonomous-engineering-4p3tlj (pokračování, 2026-08-01, v0.4.0 release)
+
+### Per-task timeout_strategy + Release v0.4.0
+
+**Cíl:** Přidat `timeout_strategy` pole, mergni PR #120, version bump 0.3.0 → 0.4.0, tag + GitHub Release.
+
+**Výsledek:** COMPLETED — GitHub Release "STARCORE Platform v0.4.0" vydán 2026-08-01T18:40:07Z
+
+#### Dokončeno
+
+- **`timeout_strategy: TimeoutStrategy | None`** přidán do `ResourceSpec` (blueprints/models.py) a `Task` (orchestrator/task.py)
+- **Planner propagace**: `create_plan()` a `create_graph()` přenáší pole
+- **Executor/Scheduler**: `TimeoutConfig(strategy=task.timeout_strategy or TimeoutStrategy.CANCEL)` na obou cestách
+- **10 nových testů**: 8× v `test_blueprints.py`, 2× v `test_scheduler.py`
+- **PR #120** squash-mergenut do main (commit `eb0f37a`)
+- **Version bump** 0.3.0 → 0.4.0: `pyproject.toml`, `CHANGELOG.md` ([0.4.0] sekce), `README.md` (601 testů): commit `c5044ff`
+- **Tag v0.4.0** vytvořen via `manual-tag.yml` (workflow run `30712969483`, success)
+- **GitHub Release** vytvořen via `release.yml` workflow_dispatch (run `30712995784`, success, ~1m 30s)
+
+#### Stav projektu po vydání
+
+| Metrika | Hodnota |
+|---------|---------|
+| Verze | 0.4.0 |
+| Tests | 601/601, 100% coverage |
+| ADR-016 | Implemented — per-task timeout_seconds + timeout_strategy |
+| GitHub Release | v0.4.0 — published |
+| main HEAD | `c5044ff` |
 
 ---
 

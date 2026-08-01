@@ -1,12 +1,12 @@
 {
   "_comment": "Sentinel baseline — aktualizovat MANUÁLNĚ po ověřeném průchodu CI gates. Nikdy automaticky.",
-  "captured_at": "2026-07-27",
+  "captured_at": "2026-08-01",
   "session": "starcore-autonomous-engineering-4p3tlj",
-  "branch": "claude/starcore-autonomous-engineering-4p3tlj",
-  "commit": "134a939",
+  "branch": "main",
+  "commit": "c5044ff",
   "tests": {
-    "total": 569,
-    "passed": 569,
+    "total": 601,
+    "passed": 601,
     "failed": 0,
     "skipped": 0
   },
@@ -31,7 +31,7 @@
     "mkdocs_strict": "PASS"
   },
   "thresholds": {
-    "min_tests": 569,
+    "min_tests": 601,
     "max_tests_delta": 5,
     "max_vulnerabilities": 0,
     "min_coverage": 100.0
@@ -41,7 +41,7 @@
     "action": "Nespouštět žádné destructive akce. Diagnostikovat příčinu. Nahlásit uživateli."
   },
   "sentinel": {
-    "test_count": 591,
+    "test_count": 601,
     "api_routes": 17,
     "cli_commands": 4,
     "config_fields": 21,
