@@ -54,12 +54,10 @@
 - **Priorita:** P2
 
 ### R-010 — SBOM/provenance attestations
-- **Stav:** OPEN
+- **Stav:** CLOSED
 - **Závažnost:** MEDIUM
-- **Problém:** Docker image neobsahuje SBOM ani sigstore/cosign attestaci — nelze ověřit supply chain při deployi
-- **Návrh opravy:** Přidat `syft` pro SBOM generování a `cosign` pro signing do `docker-publish.yml`
-- **Priorita:** P2
-- **Odhad práce:** 2-4 hodiny
+- **Uzavřeno:** 2026-08-01
+- **Oprava:** Přidány 4 kroky do `docker-publish.yml`: `sigstore/cosign-installer@v3.10.1`, `anchore/sbom-action@v0.24.0` (SPDX-JSON), `cosign sign` (keyless OIDC), `cosign attest` (SBOM připojen k image digestu); přidána oprávnění `id-token: write` + `attestations: write`
 
 ---
 
