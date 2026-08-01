@@ -7,6 +7,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-01
+
+Per-task timeout strategy: blueprint authors can now control what happens when a resource hits its deadline.
+
 ### Added
 
 - **Per-task `timeout_strategy` field (ADR-016)**: `ResourceSpec` and `Task` now carry an
@@ -15,6 +19,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default remains `TimeoutStrategy.CANCEL` (backwards-compatible).
   Supported values: `cancel` (cancels on timeout), `wait_and_mark` (lets task finish, marks
   `FAILED`), `ignore` (lets task finish, result is `SUCCESS`).
+
+### Changed
+
+- Test suite: 601 tests (↑ from 591), 100% coverage maintained.
 
 ## [0.3.0] — 2026-08-01
 
