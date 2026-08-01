@@ -36,22 +36,16 @@
 ## MEDIUM
 
 ### R-007 — jekyll-gh-pages.yml (inactive workflow)
-- **Stav:** OPEN / ACCEPTED pending operator decision
+- **Stav:** CLOSED
 - **Závažnost:** MEDIUM
-- **Soubor:** `.github/workflows/jekyll-gh-pages.yml`
-- **Problém:** Workflow na GitHub Pages build pomocí Jekyll — projekt nepoužívá Jekyll (používá MkDocs). Workflow je neaktivní ale zavádí zbytečnou attack surface.
-- **Návrh opravy:** Smazat soubor nebo zakázat
-- **Blokátor:** Vyžaduje rozhodnutí operátora (mohl by být záměrně ponechán)
-- **Priorita:** P2
+- **Uzavřeno:** 2026-08-01
+- **Oprava:** Soubor `.github/workflows/jekyll-gh-pages.yml` smazán — projekt nepoužívá Jekyll (MkDocs)
 
 ### R-008 — Dependabot auto-merge scope
-- **Stav:** OPEN / ACCEPTED pending operator decision
+- **Stav:** CLOSED
 - **Závažnost:** MEDIUM
-- **Soubor:** `.github/workflows/dependabot-auto-merge.yml`
-- **Problém:** Auto-merge všech Dependabot patch PR bez code review — patch update může obsahovat breaking change nebo supply chain útok
-- **Návrh opravy:** Omezit na `pip` ekosystém a/nebo přidat label gating
-- **Blokátor:** Preference týmu / operátora
-- **Priorita:** P2
+- **Uzavřeno:** 2026-08-01
+- **Oprava:** Auto-merge omezen na `package-ecosystem == 'pip'`; GitHub Actions updates nyní vyžadují manuální review
 
 ### R-010 — SBOM/provenance attestations
 - **Stav:** CLOSED

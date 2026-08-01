@@ -12,11 +12,11 @@
 
 ### P2 — Deferrable
 
-### R-007: Smazat nebo zakázat jekyll-gh-pages.yml
-- **Blokátor:** Rozhodnutí operátora
+### ~~R-007: Smazat nebo zakázat jekyll-gh-pages.yml~~ — CLOSED 2026-08-01
+- Soubor smazán
 
-### R-008: Omezit Dependabot auto-merge scope
-- **Blokátor:** Preference týmu
+### ~~R-008: Omezit Dependabot auto-merge scope~~ — CLOSED 2026-08-01
+- Omezeno na `pip` ekosystém; Actions updates vyžadují manuální review
 
 ### ~~R-010: SBOM/provenance attestations~~ — CLOSED 2026-08-01
 - `cosign sign` + `cosign attest` + `anchore/sbom-action` v `docker-publish.yml`

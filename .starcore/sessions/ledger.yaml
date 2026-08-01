@@ -121,4 +121,4 @@ sessions:
     stop-hook)
   - commit .starcore/ memory layer schválen (implicitně přes stop-hook)
   blockers: []
-  next_action: R-010 CLOSED — zbývají pouze R-007/R-008 (čekají na rozhodnutí operátora); všechna P1/P2 technická rizika uzavřena
+  next_action: VŠECHNA RIZIKA UZAVŘENA — R-007/R-008/R-010 CLOSED; doporučeno vydat v0.2.0
