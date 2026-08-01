@@ -7,6 +7,26 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-08-01
+
+Per-task timeout support: blueprint authors can now set a deadline on individual resources.
+
+### Added
+
+- **Per-task `timeout_seconds` (ADR-016)**: `ResourceSpec` and `Task` carry an optional
+  `timeout_seconds: float | None = None` field. When set, both `BlueprintExecutor` and
+  `Scheduler._run_task()` wrap `provider.execute()` in `execute_with_timeout()` with
+  `TimeoutStrategy.CANCEL`. A task that exceeds its deadline is cancelled and marked
+  `FAILED`, which propagates to dependents via the existing `depends_on` success gate.
+  Omitting the field (or setting `null`) preserves the previous no-timeout behaviour exactly.
+
+### Changed
+
+- **ADR-016 status**: `Accepted (deliberate deferral)` → `Implemented`. The deferral is
+  closed: per-task timeout configuration now exists, and the globally-rejected
+  `STARCORE_TASK_TIMEOUT_SECONDS` shortcut is still not introduced.
+- Test suite: 591 tests (↑ from 582), 100% coverage maintained.
+
 ## [0.2.0] — 2026-08-01
 
 Security hardening cycle, observability improvements, and cross-session memory layer.
