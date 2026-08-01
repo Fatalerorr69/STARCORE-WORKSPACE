@@ -24,8 +24,8 @@
 ### ~~R-012: assert guards → if/raise~~ — CLOSED 2026-07-27
 - 11 assert statementů → if/raise, 11 testů přidáno (commit viz ledger)
 
-### R-016: Dokumentovat STARCORE_POSTGRES_PASSWORD
-- **Odhad:** 15 minut
+### ~~R-016: Dokumentovat STARCORE_POSTGRES_PASSWORD~~ — CLOSED 2026-07-27
+- Přidán řádek do CLAUDE.md config tabulky (docker-compose only)
 
 ### ~~R-018: Packaging completeness~~ — CLOSED 2026-07-27
 - plugins → packages, migrations + alembic.ini → force-include (wheel 58→65 entries)

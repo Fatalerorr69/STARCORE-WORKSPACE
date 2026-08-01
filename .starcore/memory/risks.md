@@ -72,11 +72,10 @@
 - **Oprava:** 11 `assert self._client is not None` → `if self._client is None: raise RuntimeError("... not connected")` v proxmox/provider.py (9×) a docker/provider.py (2×); 11 nových testů přidáno, 580/580 testů, 100% coverage
 
 ### R-016 — STARCORE_POSTGRES_PASSWORD dokumentace
-- **Stav:** OPEN
+- **Stav:** CLOSED
 - **Závažnost:** LOW
-- **Problém:** Proměnná `STARCORE_POSTGRES_PASSWORD` se objevuje v `docker-compose.yml` ale není dokumentována v CLAUDE.md konfig tabulce
-- **Návrh opravy:** Přidat řádek do konfig tabulky, nebo potvrdit že proměnná je jen pro docker-compose a není v Settings
-- **Priorita:** P3
+- **Uzavřeno:** 2026-07-27
+- **Oprava:** Přidán řádek do CLAUDE.md config tabulky s poznámkou "docker-compose only" — proměnná není v Settings
 
 ### R-018 — Packaging completeness
 - **Stav:** CLOSED
