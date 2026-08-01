@@ -1,7 +1,34 @@
 # Completed Work — STARCORE Platform
 
 > Chronologický záznam dokončené práce po sezeních.
-> **Poslední aktualizace:** 2026-08-01 (correlation ID verification)
+> **Poslední aktualizace:** 2026-08-01 (v0.3.0 release)
+
+---
+
+## Sezení: starcore-autonomous-engineering-4p3tlj (pokračování, 2026-08-01, v0.3.0 release)
+
+### Release v0.3.0 — kompletní vydání
+
+**Cíl:** Mergni PR #119, version bump 0.2.0 → 0.3.0, tag + GitHub Release.
+
+**Výsledek:** COMPLETED — GitHub Release "STARCORE Platform v0.3.0" vydán 2026-08-01T17:49:01Z
+
+#### Dokončeno
+
+- **PR #119** squash-mergenut do main (commit `0557548`)
+- **Version bump** 0.2.0 → 0.3.0: `pyproject.toml`, `CHANGELOG.md` ([0.3.0] sekce), `README.md` (591 testů): commit `e854d7c`
+- **Tag v0.3.0** vytvořen via `manual-tag.yml` (workflow run `30711060168`, success)
+- **GitHub Release** vytvořen via `release.yml` workflow_dispatch (run `30711087280`, success, 1m 45s)
+
+#### Stav projektu po vydání
+
+| Metrika | Hodnota |
+|---------|---------|
+| Verze | 0.3.0 |
+| Tests | 591/591, 100% coverage |
+| ADR-016 | Implemented — per-task timeout_seconds |
+| GitHub Release | v0.3.0 — published |
+| main HEAD | `e854d7c` |
 
 ---
 
