@@ -1,14 +1,14 @@
 # Project Snapshot — STARCORE Platform
 
 > Kanonická referenční karta pro cold-start. Aktualizovat při každé strukturální změně.
-> **Poslední aktualizace:** 2026-07-27 (sezení: starcore-autonomous-engineering-4p3tlj)
+> **Poslední aktualizace:** 2026-08-04 (sezení: starcore-autonomous-engineering-4p3tlj)
 
 ## Identita projektu
 
 | Pole | Hodnota |
 |------|---------|
 | Název | starcore-platform |
-| Verze | 0.1.0 |
+| Verze | 0.4.0 |
 | Popis | AI-powered infrastructure orchestration for homelabs |
 | Licence | Apache-2.0 |
 | Python | >=3.12 (vývoj na 3.12.3) |
@@ -21,10 +21,10 @@
 
 | Metrika | Hodnota |
 |---------|---------|
-| Testy | 569 passed, 0 failed |
+| Testy | 630 passed, 0 failed |
 | Coverage | 100.00% |
 | Ruff | 0 chyb |
-| Pyright | 0 chyb |
+| Pyright | 0 chyb (0 type: ignore) |
 | pip-audit | 0 zranitelností |
 | Bandit | čistý |
 | ADR záznamy | ADR-001 až ADR-016 |

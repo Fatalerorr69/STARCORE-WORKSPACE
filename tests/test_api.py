@@ -174,8 +174,8 @@ def test_provider_health_disconnects_when_connect_succeeds():
     mock_provider.health.return_value = {"status": "ok", "provider": "docker"}
 
     with (
-        patch("core.main.registry.get", return_value=mock_provider),
-        patch("core.main.registry.names", return_value=["docker"]),
+        patch("core.routers.providers.registry.get", return_value=mock_provider),
+        patch("core.routers.providers.registry.names", return_value=["docker"]),
     ):
         response = client.get("/providers/docker/health")
 
@@ -204,7 +204,7 @@ def test_resource_action_endpoint_passes_all_optional_fields():
 def test_generate_blueprint_endpoint_returns_parsed_blueprint():
     """Lines 271-273: valid YAML from generator is loaded into a Blueprint and returned."""
     valid_yaml = "name: gen-test\nversion: '1.0'\nresources: []\n"
-    with patch("core.main.generate_blueprint_yaml", new=AsyncMock(return_value=valid_yaml)):
+    with patch("core.routers.ai.generate_blueprint_yaml", new=AsyncMock(return_value=valid_yaml)):
         response = client.post("/ai/generate-blueprint", json={"description": "a simple app"})
     assert response.status_code == 200
     body = response.json()
@@ -216,7 +216,7 @@ def test_generate_blueprint_endpoint_returns_parsed_blueprint():
 def test_generate_blueprint_endpoint_returns_validation_error_for_bad_yaml():
     """Lines 274-275: YAML that fails Blueprint validation returns 200 with validation_error."""
     invalid_yaml = "not_a_blueprint: true\n"
-    with patch("core.main.generate_blueprint_yaml", new=AsyncMock(return_value=invalid_yaml)):
+    with patch("core.routers.ai.generate_blueprint_yaml", new=AsyncMock(return_value=invalid_yaml)):
         response = client.post("/ai/generate-blueprint", json={"description": "broken"})
     assert response.status_code == 200
     body = response.json()
@@ -235,7 +235,7 @@ def test_plan_blueprint_returns_422_on_template_resolution_error():
         ],
     }
     with patch(
-        "core.main.resolve_templates",
+        "core.routers.blueprints.resolve_templates",
         new=AsyncMock(side_effect=TemplateResolutionError("template not found")),
     ):
         response = client.post("/blueprints/plan", json=payload)
@@ -253,7 +253,7 @@ def test_run_blueprint_returns_422_on_template_resolution_error():
         ],
     }
     with patch(
-        "core.main.resolve_templates",
+        "core.routers.blueprints.resolve_templates",
         new=AsyncMock(side_effect=TemplateResolutionError("template not found")),
     ):
         response = client.post("/blueprints/run", json=payload)

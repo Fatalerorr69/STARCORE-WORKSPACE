@@ -82,7 +82,8 @@ async def execute_with_timeout(
     if not config.is_enabled():
         return await coro
 
-    timeout: float = config.timeout_seconds  # type: ignore[assignment]  # is_enabled() guarantees non-None
+    assert config.timeout_seconds is not None  # is_enabled() checked above guarantees this
+    timeout: float = config.timeout_seconds
 
     logger.debug(f"Executing task {task_id} (resource='{resource}') with timeout {timeout}s")
 
