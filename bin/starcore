@@ -87,3 +87,26 @@ echo " starcore update"
 echo " starcore report"
 ;;
 esac
+
+info)
+banner
+echo "STARCORE INFORMATION"
+echo
+echo "Hostname : $(hostname)"
+echo "Kernel   : $(uname -r)"
+echo "Android  : $(getprop ro.build.version.release)"
+echo "Device   : $(getprop ro.product.model)"
+echo "CPU      : $(uname -m)"
+echo
+echo "Python"
+python --version
+echo
+echo "Git"
+git --version
+echo
+echo "GitHub"
+gh --version | head -1
+echo
+echo "Disk"
+df -h "$HOME"
+;;
