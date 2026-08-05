@@ -1,6 +1,6 @@
 {
-    "component":"STARCORE Release Manager",
-    "version":"7.0.19",
-    "release":"7.0.20",
-    "status":"current"
+    "component": "Release Registry",
+    "version": "7.10.01",
+    "current": "7.10.10",
+    "status": "current"
 }
