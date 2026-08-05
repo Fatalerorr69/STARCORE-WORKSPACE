@@ -1,292 +1,79 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-ROOT="$HOME/STARCORE"
-SCRIPTS="$ROOT/automation/github/scripts"
+BASE="$HOME/STARCORE"
 
-banner() {
-echo
-echo "=========================================="
-echo " STARCORE PLATFORM"
-echo "=========================================="
-echo
-}
+CMD=$1
 
-case "$1" in
 
-doctor)
-banner
-"$SCRIPTS/starcore_doctor.sh"
-;;
+case "$CMD" in
 
-audit)
-banner
-"$SCRIPTS/repository_audit.sh"
-;;
-
-security)
-banner
-"$SCRIPTS/security_scan.sh"
-;;
-
-backup)
-banner
-"$SCRIPTS/backup_sync.sh"
-;;
-
-release)
-banner
-"$SCRIPTS/release_check.sh"
-;;
 
 health)
-banner
-"$ROOT/automation/github/github_health.sh"
-;;
 
-status)
-banner
-"$ROOT/bin/starcore-status"
-;;
-
-info)
-banner
-
-echo "STARCORE INFORMATION"
-echo
-
-echo "Hostname : $(hostname)"
-echo "Kernel   : $(uname -r)"
-echo "Android  : $(getprop ro.build.version.release)"
-echo "Device   : $(getprop ro.product.model)"
-echo "CPU      : $(uname -m)"
-
-echo
-echo "Python"
-python --version
-
-echo
-echo "Git"
-git --version
-
-echo
-echo "GitHub"
-gh --version | head -1
-
-echo
-echo "Disk"
-df -h "$HOME"
-;;
-
-push)
-banner
-
-git -C "$ROOT" add .
-
-git -C "$ROOT" commit -m "STARCORE automatic update" || true
-
-git -C "$ROOT" push origin main
-;;
-
-update)
-banner
-
-pkg update -y
-pkg upgrade -y
-
-git -C "$ROOT" pull --rebase
-;;
-
-report)
-banner
-
-ls -lh "$ROOT"/automation/github/reports
-;;
-
-
-report)
-banner
-
-ls -lh "$ROOT"/automation/github/reports
-
-;;
-
-system)
-banner
-
-"$ROOT/automation/modules/system/system_info.sh"
-
-;;
-
-android)
-banner
-
-"$ROOT/automation/modules/android/android_check.sh"
+$BASE/tools/intelligence/project_health.sh
 
 ;;
 
 
-android-health)
+scan)
 
-banner
-
-"$ROOT/plugins/enabled/android/bin/health.sh"
+$BASE/tools/intelligence/repo_scan.sh
 
 ;;
 
 
-android-security)
+git)
 
-banner
-
-"$ROOT/plugins/enabled/android/bin/security_collect.sh"
+$BASE/tools/intelligence/git_intelligence.sh
 
 ;;
 
 
-android-telemetry)
+context)
 
-banner
-
-"$ROOT/plugins/enabled/android/bin/telemetry.sh"
+cat $BASE/config/ai_context.yaml
 
 ;;
 
 
-android-snapshot)
+audit)
 
-banner
-
-"$ROOT/plugins/enabled/android/bin/snapshot.sh"
-
-;;
-
-battery)
-banner
-
-"$ROOT/automation/modules/android/battery.sh"
-
-;;
-
-storage)
-banner
-
-"$ROOT/automation/modules/android/storage.sh"
-
-;;
-
-network)
-banner
-
-"$ROOT/automation/modules/android/network.sh"
-
-;;
-
-packages)
-banner
-
-"$ROOT/automation/modules/android/packages.sh"
-
-;;
-
-device-report)
-banner
-
-"$ROOT/automation/modules/android/device_report.sh"
-
-;;
-
-ai)
-banner
-
-banner
-
-"$ROOT/automation/modules/ai/ai_status.sh"
-
-;;
-
-verify)
-banner
-
-"$ROOT/automation/stabilization/scripts/starcore_verify.sh"
+find $BASE/security/audit -type f
 
 ;;
 
 
+backup)
 
-plugin)
+tar \
+-czf \
+$BASE/automation/backups/starcore_$(date +%Y%m%d_%H%M).tar.gz \
+$BASE/config \
+$BASE/tools \
+$BASE/runtime
 
-banner
-
-case "$2" in
-
-list)
-
-python "$ROOT/core/runtime/plugins/plugin_manager.py" list
-
-;;
-
-status)
-
-python "$ROOT/core/runtime/plugins/plugin_status.py"
-
-;;
-
-enable)
-
-python "$ROOT/core/runtime/plugins/plugin_manager.py" enable "$3"
-
-;;
-
-disable)
-
-python "$ROOT/core/runtime/plugins/plugin_manager.py" disable "$3"
-
-;;
-
-*)
-
-echo "Usage:"
-echo "starcore plugin list"
-echo "starcore plugin status"
-echo "starcore plugin enable NAME"
-echo "starcore plugin disable NAME"
-
-;;
-
-esac
+echo "BACKUP COMPLETE"
 
 ;;
 
 
 *)
-banner
 
-echo "Usage:"
-echo
-echo " starcore doctor"
-echo " starcore audit"
-echo " starcore security"
-echo " starcore backup"
-echo " starcore release"
-echo " starcore health"
-echo " starcore status"
-echo " starcore info"
-echo " starcore push"
-echo " starcore update"
-echo " starcore report"
-echo " starcore system"
-echo " starcore android"
-echo " starcore android-health"
-echo " starcore android-security"
-echo " starcore android-telemetry"
-echo " starcore android-snapshot"
-echo " starcore battery"
-echo " starcore storage"
-echo " starcore network"
-echo " starcore packages"
-echo " starcore device-report"
-echo " starcore ai"
+echo "
+STARCORE COMMAND BUS
+
+Available:
+
+health
+scan
+git
+context
+audit
+backup
+
+"
 
 ;;
 
 esac
+
