@@ -1,88 +1,64 @@
-#!/data/data/com.termux/files/usr/bin/python3
+#!/data/data/com.termux/files/usr/bin/python
 
 import sys
-import subprocess
+import json
 from pathlib import Path
 
 
-ROOT = Path.home() / "STARCORE"
+ROOT=Path.home()/"STARCORE"
 
 
-def run_module(module, args):
+cmd=" ".join(sys.argv[1:])
 
-    path = ROOT / module
 
-    if not path.exists():
+if cmd=="status":
 
-        print("MODULE NOT FOUND:")
-        print(path)
-        return 1
+    print("STARCORE STATUS ONLINE")
 
-    return subprocess.call(
-        [
-            "python3",
-            str(path),
-            *args
-        ]
+
+elif cmd=="health":
+
+    f=ROOT/"runtime/android/health/global_health.json"
+
+    print(
+        f.read_text()
+        if f.exists()
+        else "HEALTH REPORT NOT FOUND"
     )
 
 
-def main():
+elif cmd=="validate":
 
-    if len(sys.argv) < 3:
+    f=ROOT/"runtime/android/validator/global_validation.json"
 
-        print("""
-STARCORE Android CLI
-
-Usage:
-
-./starcore android status
-./starcore android health
-./starcore android help
-
-""")
-
-        return
+    print(
+        f.read_text()
+        if f.exists()
+        else "VALIDATION NOT FOUND"
+    )
 
 
-    platform=sys.argv[1]
-    command=sys.argv[2]
+elif cmd=="release":
+
+    f=ROOT/"runtime/android/release/STARCORE_6BX30_RELEASE.json"
+
+    print(
+        f.read_text()
+        if f.exists()
+        else "RELEASE NOT READY"
+    )
 
 
-    if platform != "android":
+else:
 
-        print("Only android platform supported")
+    print(
+"""
+STARCORE CLI
 
-        return
-
-
-    routes={
-
-    "status":
-    "plugins/enabled/android/control_plane/modules/status.py",
-
-    "health":
-    "plugins/enabled/android/control_plane/modules/health.py"
-
-    }
-
-
-    if command in routes:
-
-        run_module(
-            routes[command],
-            sys.argv[3:]
-        )
-
-    else:
-
-        print(
-        "Unknown command:",
-        command
-        )
-
-
-if __name__=="__main__":
-
-    main()
+status
+health
+validate
+release
+"""
+)
 
