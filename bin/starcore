@@ -124,6 +124,41 @@ banner
 
 ;;
 
+battery)
+banner
+
+"$ROOT/automation/modules/android/battery.sh"
+
+;;
+
+storage)
+banner
+
+"$ROOT/automation/modules/android/storage.sh"
+
+;;
+
+network)
+banner
+
+"$ROOT/automation/modules/android/network.sh"
+
+;;
+
+packages)
+banner
+
+"$ROOT/automation/modules/android/packages.sh"
+
+;;
+
+device-report)
+banner
+
+"$ROOT/automation/modules/android/device_report.sh"
+
+;;
+
 ai)
 banner
 
@@ -139,6 +174,53 @@ banner
 "$ROOT/automation/stabilization/scripts/starcore_verify.sh"
 
 ;;
+
+
+
+plugin)
+
+banner
+
+case "$2" in
+
+list)
+
+python "$ROOT/core/runtime/plugins/plugin_manager.py" list
+
+;;
+
+status)
+
+python "$ROOT/core/runtime/plugins/plugin_status.py"
+
+;;
+
+enable)
+
+python "$ROOT/core/runtime/plugins/plugin_manager.py" enable "$3"
+
+;;
+
+disable)
+
+python "$ROOT/core/runtime/plugins/plugin_manager.py" disable "$3"
+
+;;
+
+*)
+
+echo "Usage:"
+echo "starcore plugin list"
+echo "starcore plugin status"
+echo "starcore plugin enable NAME"
+echo "starcore plugin disable NAME"
+
+;;
+
+esac
+
+;;
+
 
 *)
 banner
@@ -158,6 +240,11 @@ echo " starcore update"
 echo " starcore report"
 echo " starcore system"
 echo " starcore android"
+echo " starcore battery"
+echo " starcore storage"
+echo " starcore network"
+echo " starcore packages"
+echo " starcore device-report"
 echo " starcore ai"
 
 ;;
