@@ -1,0 +1,28 @@
+{
+    "timestamp": "2026-08-05T19:37:31.922525",
+    "component": "STARCORE Scheduler Engine",
+    "version": "6B.X.8.A",
+    "jobs": [
+        {
+            "name": "health_scan",
+            "interval": "5m",
+            "enabled": true
+        },
+        {
+            "name": "module_validation",
+            "interval": "10m",
+            "enabled": true
+        },
+        {
+            "name": "snapshot",
+            "interval": "30m",
+            "enabled": true
+        },
+        {
+            "name": "event_sync",
+            "interval": "1m",
+            "enabled": true
+        }
+    ],
+    "status": "running"
+}
