@@ -7,6 +7,103 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Plugin operator controls (REC-009)**: Two new settings give operators control over which plugins
+  are loaded, without requiring code changes or plugin removal.
+  - `STARCORE_PLUGINS_ENABLED=false` disables all plugin loading at the `load_all()` level — no
+    plugin imports execute, regardless of what is in `plugins/`.
+  - `STARCORE_PLUGINS_ALLOWLIST=name1,name2` restricts loading to explicitly named plugins;
+    any discovered plugin not on the list is skipped with a warning. An empty value (the default)
+    keeps the existing behavior where every discovered plugin may load.
+  - These controls restrict *which* plugins are loaded, not *what* a loaded plugin can do — the
+    full-privilege trust model documented in `docs/plugins.md` and ADR-011 still applies.
+  - 4 new tests, 100% coverage.
+
+- **Kubernetes infrastructure provider (REC-008)**: New `KubernetesProvider` implementing the full
+  `BaseProvider` contract against any Kubernetes cluster.
+  - Authenticates via explicit kubeconfig (`STARCORE_KUBERNETES_KUBECONFIG`), in-cluster service
+    account (when running inside a Pod), or the default `~/.kube/config` — tried in that order.
+  - Optional `STARCORE_KUBERNETES_CONTEXT` selects the kubeconfig context; `STARCORE_KUBERNETES_NAMESPACE`
+    sets the default namespace (default: `default`).
+  - Five actions: `deploy` (create or update a Deployment), `delete` (delete a Deployment),
+    `scale` (set replica count), `restart` (rolling restart via annotation patch), and
+    `apply-namespace` (idempotent namespace creation).
+  - `connect()` is concurrency-safe via `BaseProvider._connect_lock`; the Kubernetes `ApiClient`
+    is created at most once per instance regardless of concurrent callers.
+  - All blocking SDK calls are offloaded to `asyncio.to_thread`; the provider never blocks the
+    event loop.
+  - Registered in `ProviderRegistry` alongside Docker and Proxmox via `register_default_providers()`.
+  - 37 new tests in `tests/test_kubernetes_provider.py` covering connect/disconnect/health,
+    list_resources, all five actions, error paths, and registry integration.
+
+- **WebSocket blueprint execution stream (REC-002)**: New `WS /blueprints/run/ws` endpoint streams
+  real-time execution events over a persistent WebSocket connection — a full-duplex alternative to
+  the SSE endpoint.
+  - After connecting, client sends the blueprint as a single JSON text frame; server streams
+    `task.started`, `task.completed`, `run.completed`, and `run.persisted` JSON frames.
+  - Auth via query parameters (HTTP headers are not forwarded on WebSocket handshakes):
+    `?token=<jwt>` or `?api_key=<key>`; requires `operator` role or higher.
+  - Custom application close codes: `4401` (auth failure), `4403` (forbidden / insufficient role),
+    `4422` (invalid blueprint JSON or template resolution error).
+  - Client disconnect cancels the in-flight `asyncio.Task` via `Task.cancel()`, mirroring the SSE
+    endpoint's disconnect semantics.
+  - `?parallel=true` engages `Scheduler` (wave-based graph execution); default is sequential
+    `BlueprintExecutor`.
+  - 20 new tests in `tests/test_ws_blueprint.py` covering all auth paths, happy-path event
+    ordering, error events, multi-resource blueprints, parallel mode, and disconnect/cancel.
+
+- **RBAC / JWT authentication (REC-001)**: Full role-based access control layered on top of the
+  existing single-key model. Three roles (`reader`, `operator`, `admin`) gate every API endpoint;
+  `reader ≤ operator ≤ admin` hierarchy is enforced by `require_role()` FastAPI dependencies.
+  - `POST /auth/token` — password login returns a short-lived access JWT + long-lived refresh JWT.
+  - `POST /auth/refresh` — exchange a valid refresh token for a new access token.
+  - `POST /auth/users` (admin only) — create users.
+  - `GET /auth/users` (admin only) — list users.
+  - `User` ORM model added; Alembic migration `0002_add_users.py` creates the `users` table.
+  - `STARCORE_JWT_SECRET_KEY`, `STARCORE_JWT_ALGORITHM`, `STARCORE_ACCESS_TOKEN_EXPIRE_MINUTES`,
+    `STARCORE_REFRESH_TOKEN_EXPIRE_DAYS`, and `STARCORE_INITIAL_ADMIN_PASSWORD` settings added.
+  - `STARCORE_INITIAL_ADMIN_PASSWORD` bootstraps a first `admin` user on startup.
+  - Backward-compatible: `X-API-Key` header still accepted on all endpoints and maps to `admin`.
+    Existing deployments with no `STARCORE_JWT_SECRET_KEY` continue to work unchanged.
+  - Dependencies added: `pyjwt>=2.8.0`, `bcrypt>=4.0.0`.
+
+## [0.5.0] — 2026-08-04
+
+### Added
+
+- **Blueprint parametrization (REC-006)**: `Blueprint` model carries a `vars:` map;
+  `BlueprintLoader` renders the YAML through a Jinja2 `SandboxedEnvironment` with
+  `StrictUndefined` before loading — undefined variables raise `BlueprintRenderError`.
+  `starcore blueprint plan/run` accept repeatable `--var KEY=VALUE` flags; values are
+  auto-coerced to `int`, `float`, or `bool` where unambiguous.
+
+- **SSE streaming endpoint (REC-004)**: `POST /blueprints/run/stream` streams Server-Sent
+  Events in real time: `task.started`, `task.completed`, `run.completed`, and a final
+  `run.persisted` event carrying the database `run_id`. Client disconnect cancels the
+  in-flight execution task via `asyncio.Task.cancel()`. `EventBus` gains an `unsubscribe()`
+  method for per-request handler cleanup.
+
+- **OpenTelemetry distributed tracing (REC-005)**: `packages/core/tracing.py` provides
+  `configure_tracing(endpoint)` (no-op when unset, zero overhead) and `get_tracer()`.
+  `STARCORE_OTLP_ENDPOINT` activates a `BatchSpanProcessor` + OTLP/HTTP exporter targeting
+  any OTel-compatible collector (Jaeger, Grafana Tempo, Honeycomb, etc.). Span instrumentation
+  added to `BlueprintExecutor` (`blueprint.execute`, `task.dispatch`) and `Scheduler`
+  (`blueprint.execute`, `task.run`).
+
+- **PostgreSQL CI smoke tests (REC-003)**: `postgres-smoke` job in `ci.yml` spins up
+  `postgres:16`, runs Alembic migrations against it, and executes a dedicated
+  `tests/postgres/` suite verifying schema compatibility, run persistence, and multi-run
+  queries under the PostgreSQL dialect.
+
+### Changed
+
+- **BlueprintExecutor refactor (REC-007)**: `execute()` reduced from ~110 lines to ~20 by
+  extracting `_build_task()`, `_dispatch_task()`, `_finalize_run()`, and `_emit_task_completed()`
+  helpers. No behaviour change; all 685 tests pass.
+
+- Test suite: 685 tests (↑ from 601), 100% coverage maintained.
+
 ## [0.4.0] — 2026-08-01
 
 Per-task timeout strategy: blueprint authors can now control what happens when a resource hits its deadline.

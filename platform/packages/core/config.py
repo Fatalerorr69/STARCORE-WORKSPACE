@@ -56,6 +56,35 @@ class Settings(BaseSettings):
     # acceptable.
     rate_limit_per_minute: int = 60
 
+    # OpenTelemetry OTLP/HTTP endpoint. When set, the OTel SDK is activated
+    # and spans are exported to this collector (Jaeger, Grafana Tempo,
+    # Honeycomb, etc.). When unset (the default), the no-op tracer is used
+    # with zero overhead. See core/tracing.py.
+    otlp_endpoint: str | None = None
+
+    # Kubernetes provider (REC-008). Optional: leave all unset to use the
+    # default kubeconfig at ~/.kube/config with the current context.
+    kubernetes_kubeconfig: str | None = None
+    kubernetes_context: str | None = None
+    kubernetes_namespace: str = "default"
+
+    # Plugin operator controls (REC-009). plugins_enabled=False disables all
+    # plugin loading. plugins_allowlist is a comma-separated list of plugin
+    # names; when non-empty, only those plugins are loaded (others are skipped).
+    plugins_enabled: bool = True
+    plugins_allowlist: str = ""
+
+    # JWT authentication (REC-001). Set STARCORE_JWT_SECRET_KEY to enable
+    # Bearer token auth alongside the legacy X-API-Key mechanism.
+    jwt_secret_key: str | None = None
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+
+    # Bootstrap: if set on first run with an empty users table, an 'admin'
+    # user is created with this password. Unset after initial setup.
+    initial_admin_password: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_prefix="STARCORE_",

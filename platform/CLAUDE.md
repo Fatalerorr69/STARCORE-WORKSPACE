@@ -160,6 +160,8 @@ All endpoints except `/`, `/health`, and `/ui/*` require `X-API-Key` header.
 | POST | `/ai/generate-blueprint` | Generate blueprint YAML from natural language |
 | POST | `/blueprints/plan` | Validate blueprint and return execution plan |
 | POST | `/blueprints/run` | Execute blueprint (`?parallel=true` for concurrent) |
+| POST | `/blueprints/run/stream` | Execute blueprint, stream events as Server-Sent Events |
+| WS | `/blueprints/run/ws` | Execute blueprint, stream events over WebSocket (`?token=` or `?api_key=`) |
 | GET | `/runs` | List persisted run records (`?limit=&offset=`) |
 | GET | `/runs/{run_id}` | Get a specific run record |
 
@@ -202,6 +204,11 @@ Key variables:
 | `STARCORE_PROXMOX_TOKEN_NAME` | _(none)_ | Proxmox API token name |
 | `STARCORE_PROXMOX_TOKEN_VALUE` | _(none)_ | Proxmox API token value |
 | `STARCORE_PROXMOX_VERIFY_SSL` | `true` | SSL verification for Proxmox |
+| `STARCORE_KUBERNETES_KUBECONFIG` | _(none)_ | Path to kubeconfig file; falls back to in-cluster then `~/.kube/config` |
+| `STARCORE_KUBERNETES_CONTEXT` | _(none)_ | kubeconfig context to use (default context if unset) |
+| `STARCORE_KUBERNETES_NAMESPACE` | `default` | Default namespace for Kubernetes actions |
+| `STARCORE_PLUGINS_ENABLED` | `true` | Set to `false` to disable all plugin loading |
+| `STARCORE_PLUGINS_ALLOWLIST` | _(empty)_ | Comma-separated list of allowed plugin names; empty = allow all |
 | `STARCORE_POSTGRES_PASSWORD` | _(none)_ | PostgreSQL password for the `postgres` service in `docker-compose.yml`; not read by `Settings` — docker-compose only |
 
 ## Test Isolation
@@ -388,3 +395,16 @@ uv run python .starcore/scripts/tests/test_qc_engines.py   # 68 tests
 
 Full protocol: `.starcore/memory/qc_engines.md`
 ```
+
+## Communication Preferences
+
+When presenting options, next steps, or decisions, always include a **recommended answer pre-filled directly in the chat**. Format it as:
+
+> **Doporučená odpověď:** `<konkrétní příkaz nebo volba>`
+
+This applies to:
+- Decision Engine option menus (pre-select the recommended varianta)
+- Next-step proposals (state the recommended step first, with the command ready to copy)
+- Confirmation prompts before safety-gated actions (state what will be executed)
+
+The user can confirm with "ano" / "yes" or override by specifying a different option. Never wait silently for a choice without first offering a recommendation.

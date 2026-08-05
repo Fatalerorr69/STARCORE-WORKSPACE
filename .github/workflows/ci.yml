@@ -9,6 +9,9 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -64,6 +67,9 @@ jobs:
 
   postgres-smoke:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform
     services:
       postgres:
         image: postgres:16
@@ -113,7 +119,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Build image
-        run: docker build -t starcore-platform:ci-test .
+        run: docker build -t starcore-platform:ci-test ./platform
 
       - name: Smoke test container starts and responds to /health
         run: |
