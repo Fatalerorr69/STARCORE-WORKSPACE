@@ -1,6 +1,5 @@
 {
-    "component": "STARCORE Studio Dashboard",
-    "version": "7.0.10",
-    "modules": "all",
+    "component": "Studio Dashboard",
+    "version": "7.5.01",
     "status": "online"
 }
