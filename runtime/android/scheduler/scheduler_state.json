@@ -1,27 +1,22 @@
 {
-    "timestamp": "2026-08-05T19:37:31.922525",
-    "component": "STARCORE Scheduler Engine",
-    "version": "6B.X.8.A",
+    "timestamp": "2026-08-05T20:18:58.212341",
+    "component": "STARCORE Scheduler",
+    "version": "6B.X.12",
     "jobs": [
         {
-            "name": "health_scan",
-            "interval": "5m",
-            "enabled": true
+            "id": "health_scan",
+            "enabled": true,
+            "interval": "manual"
         },
         {
-            "name": "module_validation",
-            "interval": "10m",
-            "enabled": true
+            "id": "module_validation",
+            "enabled": true,
+            "interval": "manual"
         },
         {
-            "name": "snapshot",
-            "interval": "30m",
-            "enabled": true
-        },
-        {
-            "name": "event_sync",
-            "interval": "1m",
-            "enabled": true
+            "id": "snapshot",
+            "enabled": true,
+            "interval": "manual"
         }
     ],
     "status": "running"

@@ -1,20 +1,17 @@
-{
- "version":"6B.X.8",
- "jobs":[
-  {
-   "id":"health",
-   "module":"diagnostics",
-   "enabled":true
-  },
-  {
-   "id":"snapshot",
-   "module":"snapshot_manager",
-   "enabled":true
-  },
-  {
-   "id":"recovery",
-   "module":"recovery_engine",
-   "enabled":true
-  }
- ]
-}
+[
+ {
+  "id":"health_scan",
+  "enabled":true,
+  "interval":"manual"
+ },
+ {
+  "id":"module_validation",
+  "enabled":true,
+  "interval":"manual"
+ },
+ {
+  "id":"snapshot",
+  "enabled":true,
+  "interval":"manual"
+ }
+]
