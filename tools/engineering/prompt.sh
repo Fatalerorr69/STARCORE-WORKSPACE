@@ -1,44 +1,89 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-
 BASE="$HOME/STARCORE"
 
-TYPE=$1
-
+TYPE="$1"
 
 OUT="$BASE/prompts/generated"
-
 
 mkdir -p "$OUT"
 
 
-
 case "$TYPE" in
-
 
 audit)
 
-cat > "$OUT/audit_prompt.md" <<EOF
+cat > "$OUT/audit.md" <<EOT
+# STARCORE FULL AUDIT
 
-# STARCORE FULL AUDIT PROMPT
+Analyze:
 
-
-Analyze the STARCORE repository.
-
-
-Context:
-
-$(cat $BASE/config/ai_context.yaml)
-
+$BASE
 
 Tasks:
 
-1. Analyze architecture
-2. Identify duplicate systems
-3. Find unfinished modules
-4. Create completion roadmap
-5. Suggest refactoring
+- architecture
+- duplicates
+- security
+- optimization
 
+No modifications.
+EOT
 
-Do not modify files.
+;;
 
+proxmox)
+
+cat > "$OUT/proxmox.md" <<EOT
+# STARCORE PROXMOX OPERATOR
+
+Host:
+fatalab
+
+VM:
+100 FataLab-Core
+
+Services:
+
+- Ollama
+- OpenWebUI
+- Qdrant
+- Docker
+
+Perform infrastructure audit.
+EOT
+
+;;
+
+coding)
+
+cat > "$OUT/coding.md" <<EOT
+# STARCORE DEVELOPMENT MODE
+
+Rules:
+
+Backup first.
+
+Analyze.
+
+Modify.
+
+Test.
+
+Commit.
+EOT
+
+;;
+
+*)
+
+echo "Usage:"
+echo "audit"
+echo "proxmox"
+echo "coding"
+
+;;
+
+esac
+
+echo "PROMPT READY"

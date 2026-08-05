@@ -2,53 +2,41 @@
 
 BASE="$HOME/STARCORE"
 
-REPORT="$BASE/intelligence/reports"
-
-mkdir -p "$REPORT"
+echo "========== STARCORE ANALYSIS =========="
 
 
-echo "STARCORE ANALYSIS"
-
+echo
+echo "[PYTHON FILES]"
 
 find "$BASE" \
 -type f \
--not -path "*/.git/*" \
-> "$REPORT/files.txt"
-
-
-find "$BASE" \
 -name "*.py" \
-> "$REPORT/python.txt"
+-not -path "*/.venv/*" \
+-not -path "*/__pycache__/*" \
+| wc -l
 
+
+echo
+echo "[SHELL TOOLS]"
+
+find "$BASE/tools" \
+-type f \
+-name "*.sh" \
+| wc -l
+
+
+echo
+echo "[GIT]"
+
+git -C "$BASE" status --short
+
+
+echo
+echo "[DIRECTORIES]"
 
 find "$BASE" \
--name "*.js" \
--o -name "*.ts" \
-> "$REPORT/javascript.txt"
-
-
-find "$BASE" \
--name "Dockerfile*" \
--o -name "docker-compose*" \
-> "$REPORT/docker.txt"
-
-
-cat > "$REPORT/architecture_report.md" <<EOF
-
-# STARCORE Architecture Report
-
-Generated:
-$(date)
-
-Files:
-$(wc -l < "$REPORT/files.txt")
-
-Python:
-$(wc -l < "$REPORT/python.txt")
-
-Javascript:
-$(wc -l < "$REPORT/javascript.txt")
-
-Docker:
-$(wc -l < "$REPORT/docker.txt")
+-maxdepth 1 \
+-type d \
+-not -name ".git" \
+| sort
 
