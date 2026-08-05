@@ -1,0 +1,15 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+
+# Termux
+*.log
+
+# Security runtime reports
+security/runtime/
+
