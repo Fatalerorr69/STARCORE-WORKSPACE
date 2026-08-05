@@ -102,6 +102,21 @@ banner
 ls -lh "$ROOT"/automation/github/reports
 ;;
 
+
+report)
+banner
+
+ls -lh "$ROOT"/automation/github/reports
+
+;;
+
+verify)
+banner
+
+"$ROOT/automation/stabilization/scripts/starcore_verify.sh"
+
+;;
+
 *)
 banner
 

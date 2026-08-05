@@ -1,34 +1,6 @@
-
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-
-# Virtual environments
 .venv/
-
-# Termux
-*.log
-
-# Security runtime reports
-security/runtime/
-
-
-# GitHub automation runtime
-automation/github/reports/
-automation/github/logs/
-
-
-# Python cache everywhere
-**/__pycache__/
+__pycache__/
 *.pyc
 *.pyo
-*.pyd
-
-# STARCORE runtime
 *.log
-
-# Backup archives
-STARCORE_BACKUPS/
-*.tar.gz
-
+automation/stabilization/reports/*.txt
