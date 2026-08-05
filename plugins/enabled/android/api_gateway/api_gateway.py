@@ -7,36 +7,40 @@ from datetime import datetime
 
 root=Path.home()/"STARCORE"
 
-out=root/"runtime/android/lifecycle"
+out=root/"runtime/android/api"
 out.mkdir(parents=True,exist_ok=True)
 
 
-state={
+api={
 
 "timestamp":datetime.now().isoformat(),
 
 "component":
-"STARCORE Lifecycle Manager",
+"STARCORE API Gateway",
 
-"states":[
+"endpoints":[
 
-"installed",
-"validated",
-"running",
-"recoverable"
+"health",
+"status",
+"agents",
+"memory",
+"command"
 
 ],
 
+"bridge":
+"FataLab-ready",
+
 "status":
-"ready"
+"online"
 
 }
 
 
 json.dump(
-state,
-open(out/"lifecycle.json","w"),
+api,
+open(out/"api_gateway.json","w"),
 indent=4
 )
 
-print("LIFECYCLE READY")
+print("API GATEWAY ONLINE")

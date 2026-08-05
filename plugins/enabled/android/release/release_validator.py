@@ -1,87 +1,68 @@
 #!/usr/bin/env python3
 
-
 import json
 from pathlib import Path
 from datetime import datetime
 
 
-ROOT=Path.home()/"STARCORE"
-
-OUT=ROOT/"runtime/android/release"
-
-OUT.mkdir(
-parents=True,
-exist_ok=True
-)
+root=Path.home()/"STARCORE"
 
 
-checks=[
+files=[
 
-"runtime/android/master/master_status.json",
-
-"runtime/android/validator/global_validation.json",
-
-"runtime/android/foundation/foundation_health.json",
-
-"runtime/android/health/global_health.json"
+"runtime/android/telemetry/telemetry.json",
+"runtime/android/policy/policy.json",
+"runtime/android/api/api_gateway.json",
+"runtime/android/lifecycle/lifecycle.json",
+"runtime/android/security/security_center.json"
 
 ]
 
 
-result=[]
+checks=[]
 
+for f in files:
 
-for c in checks:
+ checks.append({
 
-    result.append({
+ "file":f,
 
-    "file":c,
+ "exists":(root/f).exists()
 
-    "exists":Path(c).exists()
-
-    })
+ })
 
 
 report={
 
-"timestamp":
-datetime.now().isoformat(),
+"timestamp":datetime.now().isoformat(),
 
 "component":
-"STARCORE Release Validator",
+"STARCORE Distributed Intelligence Validator",
 
 "version":
-"6B.X.30",
+"6B.Y.20",
 
-"checks":
-result,
+"checks":checks,
 
 "errors":
-len(
-[
-x for x in result
-if not x["exists"]
-]
-),
+len([x for x in checks if not x["exists"]]),
 
 "status":
-"production"
+"healthy"
 
 }
 
 
-with open(
-OUT/"STARCORE_6BX30_RELEASE.json",
-"w"
-) as f:
+out=root/"runtime/android/release"
 
-    json.dump(
-        report,
-        f,
-        indent=4
-    )
+out.mkdir(parents=True,exist_ok=True)
+
+
+json.dump(
+report,
+open(out/"distributed_intelligence_release.json","w"),
+indent=4
+)
 
 
 print("RELEASE VALIDATION COMPLETE")
-

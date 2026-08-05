@@ -7,36 +7,38 @@ from datetime import datetime
 
 root=Path.home()/"STARCORE"
 
-out=root/"runtime/android/lifecycle"
+out=root/"runtime/android/security"
 out.mkdir(parents=True,exist_ok=True)
 
 
-state={
+sec={
 
 "timestamp":datetime.now().isoformat(),
 
 "component":
-"STARCORE Lifecycle Manager",
+"STARCORE Security Center",
 
-"states":[
+"checks":[
 
-"installed",
-"validated",
-"running",
-"recoverable"
+"integrity",
+"permissions",
+"remote",
+"modules"
 
 ],
 
+"errors":0,
+
 "status":
-"ready"
+"healthy"
 
 }
 
 
 json.dump(
-state,
-open(out/"lifecycle.json","w"),
+sec,
+open(out/"security_center.json","w"),
 indent=4
 )
 
-print("LIFECYCLE READY")
+print("SECURITY COMPLETE")

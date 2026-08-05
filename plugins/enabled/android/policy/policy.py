@@ -7,36 +7,35 @@ from datetime import datetime
 
 root=Path.home()/"STARCORE"
 
-out=root/"runtime/android/lifecycle"
+out=root/"runtime/android/policy"
 out.mkdir(parents=True,exist_ok=True)
 
 
-state={
+policy={
 
 "timestamp":datetime.now().isoformat(),
 
 "component":
-"STARCORE Lifecycle Manager",
+"STARCORE Policy Engine",
 
-"states":[
+"rules":[
 
-"installed",
-"validated",
-"running",
-"recoverable"
+"module_integrity",
+"safe_execution",
+"remote_access_control",
+"backup_required"
 
 ],
 
-"status":
-"ready"
+"status":"active"
 
 }
 
 
 json.dump(
-state,
-open(out/"lifecycle.json","w"),
+policy,
+open(out/"policy.json","w"),
 indent=4
 )
 
-print("LIFECYCLE READY")
+print("POLICY COMPLETE")
