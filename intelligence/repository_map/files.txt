@@ -70,6 +70,7 @@
 /data/data/com.termux/files/home/STARCORE/security/backup_engine.py
 /data/data/com.termux/files/home/STARCORE/security/github_intelligence_upgrade.py
 /data/data/com.termux/files/home/STARCORE/security/security_audit.py
+/data/data/com.termux/files/home/STARCORE/security/audit/security_policy.json
 /data/data/com.termux/files/home/STARCORE/automation/git/starcore_git_health.sh
 /data/data/com.termux/files/home/STARCORE/automation/github/github_health.sh
 /data/data/com.termux/files/home/STARCORE/automation/github/scripts/release_check.sh
@@ -2134,6 +2135,7 @@
 /data/data/com.termux/files/home/STARCORE/agents/kernel/agent_kernel.py
 /data/data/com.termux/files/home/STARCORE/agents/planner/task_planner.py
 /data/data/com.termux/files/home/STARCORE/agents/missions/mission_executor.py
+/data/data/com.termux/files/home/STARCORE/agents/agent_registry.json
 /data/data/com.termux/files/home/STARCORE/runtime/state/starcore.json
 /data/data/com.termux/files/home/STARCORE/runtime/state/runtime.json
 /data/data/com.termux/files/home/STARCORE/runtime/events/events.log
@@ -2549,6 +2551,7 @@
 /data/data/com.termux/files/home/STARCORE/runtime/access/file_inventory.json
 /data/data/com.termux/files/home/STARCORE/runtime/access/ACCESS_LAYER_RELEASE.json
 /data/data/com.termux/files/home/STARCORE/runtime/sessions/context_engine.json
+/data/data/com.termux/files/home/STARCORE/runtime/control_node_release.json
 /data/data/com.termux/files/home/STARCORE/logs/system/starcore.log
 /data/data/com.termux/files/home/STARCORE/requirements.txt
 /data/data/com.termux/files/home/STARCORE/config.yaml
@@ -4639,7 +4642,13 @@
 /data/data/com.termux/files/home/STARCORE/install_TERMUX_REMOTE_AI_BRIDGE_3.sh
 /data/data/com.termux/files/home/STARCORE/install_TERMUX_REMOTE_AI_BRIDGE_4.sh
 /data/data/com.termux/files/home/STARCORE/intelligence/repository_map/files.txt
+/data/data/com.termux/files/home/STARCORE/intelligence/repository_map/repository_map.json
+/data/data/com.termux/files/home/STARCORE/intelligence/reports/git_status.json
 /data/data/com.termux/files/home/STARCORE/install_TERMUX_REMOTE_AI_BRIDGE_5.sh
 /data/data/com.termux/files/home/STARCORE/install_STARCORE_AI_CONTEXT_ENGINE_v1.sh
+/data/data/com.termux/files/home/STARCORE/install_STARCORE_CONTROL_NODE_v2.sh
 /data/data/com.termux/files/home/STARCORE/install_STARCORE_UNIVERSAL_ACCESS_LAYER_v1.sh
 /data/data/com.termux/files/home/STARCORE/install_STARCORE_INTELLIGENCE_LAYER_v1.sh
+/data/data/com.termux/files/home/STARCORE/prompts/master_context.md
+/data/data/com.termux/files/home/STARCORE/prompts/repository_audit.md
+/data/data/com.termux/files/home/STARCORE/prompts/proxmox_operator.md
