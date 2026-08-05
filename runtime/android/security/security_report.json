@@ -1,0 +1,13 @@
+{
+    "timestamp": "2026-08-05T18:54:53.647884",
+    "boot": {
+        "verified": "green",
+        "locked": "1"
+    },
+    "selinux": "unavailable",
+    "magisk": false,
+    "root": "uid=10344(u0_a344) gid=10344(u0_a344) groups=10344(u0_a344),1079(ext_obb_rw),3003(inet),9997(everybody),20344(u0_a344_cache),50344(all_a344) context=u:r:untrusted_app_27:s0:c88,c257,c512,c768",
+    "recommendations": [
+        "SELinux is not enforcing"
+    ]
+}
