@@ -1,0 +1,89 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+ROOT="$HOME/STARCORE"
+SCRIPTS="$ROOT/automation/github/scripts"
+
+banner() {
+echo
+echo "=========================================="
+echo " STARCORE PLATFORM"
+echo "=========================================="
+echo
+}
+
+case "$1" in
+
+doctor)
+banner
+"$SCRIPTS/starcore_doctor.sh"
+;;
+
+audit)
+banner
+"$SCRIPTS/repository_audit.sh"
+;;
+
+security)
+banner
+"$SCRIPTS/security_scan.sh"
+;;
+
+backup)
+banner
+"$SCRIPTS/backup_sync.sh"
+;;
+
+release)
+banner
+"$SCRIPTS/release_check.sh"
+;;
+
+health)
+banner
+"$ROOT/automation/github/github_health.sh"
+;;
+
+status)
+banner
+git -C "$ROOT" status
+echo
+git -C "$ROOT" branch -vv
+echo
+git -C "$ROOT" log --oneline -5
+;;
+
+push)
+banner
+git -C "$ROOT" add .
+git -C "$ROOT" commit -m "STARCORE automatic update" || true
+git -C "$ROOT" push origin main
+;;
+
+update)
+banner
+pkg update -y
+pkg upgrade -y
+git -C "$ROOT" pull --rebase
+;;
+
+report)
+banner
+ls -lh "$ROOT"/automation/github/reports
+;;
+
+*)
+banner
+echo "Usage:"
+echo
+echo " starcore doctor"
+echo " starcore audit"
+echo " starcore security"
+echo " starcore backup"
+echo " starcore release"
+echo " starcore health"
+echo " starcore status"
+echo " starcore push"
+echo " starcore update"
+echo " starcore report"
+;;
+esac
