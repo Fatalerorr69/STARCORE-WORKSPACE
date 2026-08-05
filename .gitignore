@@ -18,3 +18,17 @@ security/runtime/
 automation/github/reports/
 automation/github/logs/
 
+
+# Python cache everywhere
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# STARCORE runtime
+*.log
+
+# Backup archives
+STARCORE_BACKUPS/
+*.tar.gz
+
