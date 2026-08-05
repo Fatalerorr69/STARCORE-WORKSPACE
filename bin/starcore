@@ -124,6 +124,42 @@ banner
 
 ;;
 
+
+android-health)
+
+banner
+
+"$ROOT/plugins/enabled/android/bin/health.sh"
+
+;;
+
+
+android-security)
+
+banner
+
+"$ROOT/plugins/enabled/android/bin/security_collect.sh"
+
+;;
+
+
+android-telemetry)
+
+banner
+
+"$ROOT/plugins/enabled/android/bin/telemetry.sh"
+
+;;
+
+
+android-snapshot)
+
+banner
+
+"$ROOT/plugins/enabled/android/bin/snapshot.sh"
+
+;;
+
 battery)
 banner
 
@@ -240,6 +276,10 @@ echo " starcore update"
 echo " starcore report"
 echo " starcore system"
 echo " starcore android"
+echo " starcore android-health"
+echo " starcore android-security"
+echo " starcore android-telemetry"
+echo " starcore android-snapshot"
 echo " starcore battery"
 echo " starcore storage"
 echo " starcore network"
