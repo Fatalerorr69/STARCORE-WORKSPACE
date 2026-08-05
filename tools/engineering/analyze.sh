@@ -1,16 +1,13 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-
 BASE="$HOME/STARCORE"
 
 REPORT="$BASE/intelligence/reports"
 
-
 mkdir -p "$REPORT"
 
 
-echo "Generating STARCORE analysis..."
-
+echo "STARCORE ANALYSIS"
 
 
 find "$BASE" \
@@ -19,69 +16,39 @@ find "$BASE" \
 > "$REPORT/files.txt"
 
 
-
 find "$BASE" \
 -name "*.py" \
-> "$REPORT/python_projects.txt"
-
+> "$REPORT/python.txt"
 
 
 find "$BASE" \
 -name "*.js" \
 -o -name "*.ts" \
-> "$REPORT/node_projects.txt"
-
+> "$REPORT/javascript.txt"
 
 
 find "$BASE" \
--name "docker-compose*" \
--o -name "Dockerfile*" \
-> "$REPORT/docker_inventory.txt"
+-name "Dockerfile*" \
+-o -name "docker-compose*" \
+> "$REPORT/docker.txt"
 
 
+cat > "$REPORT/architecture_report.md" <<EOF
 
-grep -R \
--E "TODO|FIXME|BUG|HACK" \
-"$BASE" \
---exclude-dir=.git \
-> "$REPORT/issues.txt" \
-|| true
-
-
-
-cat > "$REPORT/architecture_report.md" <<EOF2
 # STARCORE Architecture Report
-
 
 Generated:
 $(date)
 
-
-## Statistics
-
-
 Files:
 $(wc -l < "$REPORT/files.txt")
 
-
 Python:
-$(wc -l < "$REPORT/python_projects.txt")
+$(wc -l < "$REPORT/python.txt")
 
-
-Node:
-$(wc -l < "$REPORT/node_projects.txt")
-
+Javascript:
+$(wc -l < "$REPORT/javascript.txt")
 
 Docker:
-$(wc -l < "$REPORT/docker_inventory.txt")
-
-
-Issues:
-$(wc -l < "$REPORT/issues.txt")
-
-
-EOF2
-
-
-echo "REPORT READY"
+$(wc -l < "$REPORT/docker.txt")
 

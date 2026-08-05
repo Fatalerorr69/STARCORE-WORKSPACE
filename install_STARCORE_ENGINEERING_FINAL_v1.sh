@@ -4,28 +4,35 @@ set -e
 
 BASE="$HOME/STARCORE"
 
+
 echo "=================================================="
-echo " STARCORE AUTONOMOUS ENGINEERING v3.1 REPAIR"
+echo " STARCORE ENGINEERING FINAL v1.0"
+echo " CONTROL NODE UPGRADE"
 echo "=================================================="
 
 
 mkdir -p \
-"$BASE/tools/engineering" \
-"$BASE/intelligence/reports" \
-"$BASE/prompts/generated" \
-"$BASE/runtime/engineering"
+$BASE/tools/engineering \
+$BASE/intelligence/reports \
+$BASE/runtime/engineering \
+$BASE/backups \
+$BASE/prompts/generated \
+$BASE/sessions
 
 
-########################################
+
+############################################
 # REPOSITORY ANALYZER
-########################################
+############################################
 
-cat > "$BASE/tools/engineering/analyze.sh" <<'SH'
+
+cat > $BASE/tools/engineering/analyze.sh <<'SH'
 #!/data/data/com.termux/files/usr/bin/bash
 
-BASE="$HOME/STARCORE"
 
+BASE="$HOME/STARCORE"
 REPORT="$BASE/intelligence/reports"
+
 
 mkdir -p "$REPORT"
 
@@ -56,6 +63,15 @@ find "$BASE" \
 > "$REPORT/docker.txt"
 
 
+grep -R \
+-E "TODO|FIXME|BUG|HACK" \
+"$BASE" \
+--exclude-dir=.git \
+> "$REPORT/issues.txt" \
+|| true
+
+
+
 cat > "$REPORT/architecture_report.md" <<EOF
 
 # STARCORE Architecture Report
@@ -63,15 +79,24 @@ cat > "$REPORT/architecture_report.md" <<EOF
 Generated:
 $(date)
 
+
 Files:
 $(wc -l < "$REPORT/files.txt")
+
 
 Python:
 $(wc -l < "$REPORT/python.txt")
 
+
 Javascript:
 $(wc -l < "$REPORT/javascript.txt")
 
+
 Docker:
 $(wc -l < "$REPORT/docker.txt")
+
+
+Issues:
+$(wc -l < "$REPORT/issues.txt")
+
 
