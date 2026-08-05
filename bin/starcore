@@ -45,11 +45,7 @@ banner
 
 status)
 banner
-git -C "$ROOT" status
-echo
-git -C "$ROOT" branch -vv
-echo
-git -C "$ROOT" log --oneline -5
+"$ROOT/bin/starcore-status"
 ;;
 
 push)
