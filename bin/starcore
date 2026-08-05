@@ -110,6 +110,29 @@ ls -lh "$ROOT"/automation/github/reports
 
 ;;
 
+system)
+banner
+
+"$ROOT/automation/modules/system/system_info.sh"
+
+;;
+
+android)
+banner
+
+"$ROOT/automation/modules/android/android_check.sh"
+
+;;
+
+ai)
+banner
+
+banner
+
+"$ROOT/automation/modules/ai/ai_status.sh"
+
+;;
+
 verify)
 banner
 
@@ -133,6 +156,9 @@ echo " starcore info"
 echo " starcore push"
 echo " starcore update"
 echo " starcore report"
+echo " starcore system"
+echo " starcore android"
+echo " starcore ai"
 
 ;;
 
