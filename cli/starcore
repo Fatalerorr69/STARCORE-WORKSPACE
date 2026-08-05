@@ -1,20 +1,4 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-case "$1" in
+python3 ~/STARCORE/core/cli/router.py "$@"
 
-status)
-
-echo "================================"
-echo " STARCORE PLATFORM STATUS"
-echo "================================"
-
-cat ~/STARCORE/runtime/platform/health.json
-
-;;
-
-*)
-echo "Usage:"
-echo " starcore status"
-;;
-
-esac
