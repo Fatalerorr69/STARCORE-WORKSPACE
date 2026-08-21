@@ -34,3 +34,4 @@ config_local.ini
 # Build artifacts
 dist/
 build/
+SuperNastroj_Linux.sh
