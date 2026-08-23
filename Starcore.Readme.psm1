@@ -27,9 +27,8 @@ Krátký popis projektu.
         if (-not (Test-Path $readme)) {
             $content = $template -replace "{{NAME}}",$name
             $content | Set-Content $readme -Encoding UTF8
-            git -C $p add README.md 2>$null
-            git -C $p commit -m "Add README from template" 2>$null
-            try { git -C $p push origin (git -C $p rev-parse --abbrev-ref HEAD) 2>$null } catch { }
+            try { git -C $p add README.md; git -C $p commit -m "Add README from template" } catch { }
+            try { git -C $p push origin (git -C $p rev-parse --abbrev-ref HEAD) } catch { }
         }
     }
 }
