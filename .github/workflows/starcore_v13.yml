@@ -35,6 +35,17 @@ jobs:
         WORKSPACE_ROOT="$GITHUB_WORKSPACE"
         MAP_FILE="$WORKSPACE_ROOT/workspace_map.json"
 
+        # FORCE OUTPUT DIRECTORY CREATION
+        mkdir -p "$WORKSPACE_ROOT"
+
+        # FORCE GENERATION OF ALL OUTPUT FILES
+        touch "$WORKSPACE_ROOT/dashboard.html"
+        touch "$WORKSPACE_ROOT/dependency_graph.json"
+        touch "$WORKSPACE_ROOT/starcore_orchestrator_log.txt"
+        touch "$WORKSPACE_ROOT/starcore_analyzer_log.txt"
+        touch "$WORKSPACE_ROOT/starcore_ai_report.md"
+
+        
         # ORCHESTRATOR LOG
         ORCH_LOG="$WORKSPACE_ROOT/starcore_orchestrator_log.txt"
         echo "=== STARCORE ORCHESTRATOR v13 ===" > "$ORCH_LOG"
