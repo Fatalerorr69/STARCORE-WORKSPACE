@@ -95,52 +95,53 @@ jobs:
       - name: Generate dependency_graph.json
         run: |
           python3 - << 'PY'
-import os, json, re
+          import os, json, re
 
-root = os.environ.get("GITHUB_WORKSPACE", ".")
-map_path = os.path.join(root, "workspace_map.json")
-out = os.path.join(root, "dependency_graph.json")
+          root = os.environ.get("GITHUB_WORKSPACE", ".")
+          map_path = os.path.join(root, "workspace_map.json")
+          out = os.path.join(root, "dependency_graph.json")
 
-if not os.path.isfile(map_path):
-    with open(out, "w", encoding="utf-8") as f:
-        f.write("[]")
-    raise SystemExit(0)
+          if not os.path.isfile(map_path):
+              with open(out, "w", encoding="utf-8") as f:
+                  f.write("[]")
+              raise SystemExit(0)
 
-with open(map_path, "r", encoding="utf-8") as f:
-    projects = json.load(f)
+          with open(map_path, "r", encoding="utf-8") as f:
+              projects = json.load(f)
 
-graph = []
-imp_re = re.compile(r'Import-Module\s+(.+)', re.IGNORECASE)
+          graph = []
+          imp_re = re.compile(r'Import-Module\s+(.+)', re.IGNORECASE)
 
-for proj in projects:
-    name = proj.get("Project", "")
-    path = proj.get("Path", "")
-    full = os.path.join(root, path)
+          for proj in projects:
+              name = proj.get("Project", "")
+              path = proj.get("Path", "")
+              full = os.path.join(root, path)
 
-    if not os.path.isdir(full):
-        continue
+              if not os.path.isdir(full):
+                  continue
 
-    for dirpath, _, files in os.walk(full):
-        for fn in files:
-            if fn.lower().endswith(".ps1"):
-                p = os.path.join(dirpath, fn)
-                try:
-                    with open(p, "r", encoding="utf-8", errors="ignore") as sf:
-                        for line in sf:
-                            m = imp_re.search(line)
-                            if m:
-                                module = m.group(1).strip().strip('"').strip("'")
-                                graph.append({
-                                    "Project": name,
-                                    "Script": os.path.relpath(p, root),
-                                    "Module": module
-                                })
-                except Exception:
-                    pass
+              for dirpath, _, files in os.walk(full):
+                  for fn in files:
+                      if fn.lower().endswith(".ps1"):
+                          p = os.path.join(dirpath, fn)
+                          try:
+                              with open(p, "r", encoding="utf-8", errors="ignore") as sf:
+                                  for line in sf:
+                                      m = imp_re.search(line)
+                                      if m:
+                                          module = m.group(1).strip().strip('"').strip("'")
+                                          graph.append({
+                                              "Project": name,
+                                              "Script": os.path.relpath(p, root),
+                                              "Module": module
+                                          })
+                          except Exception:
+                              pass
 
-with open(out, "w", encoding="utf-8") as f:
-    json.dump(graph, f, indent=2)
-PY
+          with open(out, "w", encoding="utf-8") as f:
+              json.dump(graph, f, indent=2)
+          PY
+
 
       - name: Generate starcore_orchestrator_log.txt
         run: |
