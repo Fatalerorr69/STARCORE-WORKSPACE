@@ -35,7 +35,7 @@ jobs:
         uses: docker://ghcr.io/github/actions-workflow-linter:latest
         with:
           path: ".github/workflows/"
-      
+
       - name: Checkout workspace
         uses: actions/checkout@v4
         with:
@@ -52,45 +52,55 @@ jobs:
           REPORT="$WORKSPACE_ROOT/starcore_validation_report.txt"
           echo "=== STARCORE VALIDATION REPORT ===" > "$REPORT"
           echo "" >> "$REPORT"
+
           if [ -f "$WORKSPACE_ROOT/dashboard.html" ]; then
             echo "[OK] Dashboard exists" >> "$REPORT"
           else
             echo "[ERROR] Dashboard missing" >> "$REPORT"
           fi
+
           if [ -f "$WORKSPACE_ROOT/dependency_graph.json" ]; then
             echo "[OK] Dependency graph exists" >> "$REPORT"
           else
             echo "[ERROR] Dependency graph missing" >> "$REPORT"
           fi
+
           if jq empty "$WORKSPACE_ROOT/workspace_map.json" 2>/dev/null; then
             echo "[OK] workspace_map.json is valid JSON" >> "$REPORT"
           else
             echo "[ERROR] workspace_map.json invalid or missing" >> "$REPORT"
           fi
+
           README_COUNT=$(find "$WORKSPACE_ROOT" -type f -name "README.md" | wc -l)
           echo "[INFO] README files found: $README_COUNT" >> "$REPORT"
+
           if [ "$README_COUNT" -gt 0 ]; then
             echo "[OK] Documentation generated" >> "$REPORT"
           else
             echo "[ERROR] No README files generated" >> "$REPORT"
           fi
+
           if grep -q "STARCORE ORCHESTRATOR" "$WORKSPACE_ROOT/starcore_orchestrator_log.txt" 2>/dev/null; then
             echo "[OK] Orchestrator log exists" >> "$REPORT"
           else
             echo "[WARN] Orchestrator log missing" >> "$REPORT"
           fi
+
           if grep -q "WORKSPACE ANALYZER" "$WORKSPACE_ROOT/starcore_analyzer_log.txt" 2>/dev/null; then
             echo "[OK] Analyzer log exists" >> "$REPORT"
           else
             echo "[WARN] Analyzer log missing" >> "$REPORT"
           fi
+
           LAST_COMMIT=$(git log -1 --pretty=format:"%an - %s" 2>/dev/null || echo "No git history")
           echo "[INFO] Last commit: $LAST_COMMIT" >> "$REPORT"
+
           if echo "$LAST_COMMIT" | grep -q "GitHub Actions"; then
             echo "[OK] GitHub Actions committed changes" >> "$REPORT"
           else
             echo "[WARN] Last commit not from GitHub Actions" >> "$REPORT"
           fi
+
           echo "" >> "$REPORT"
           echo "=== VALIDATION COMPLETE ===" >> "$REPORT"
 
@@ -105,32 +115,36 @@ jobs:
           git commit -m "STARCORE Validation Report" || echo "No changes"
           git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main || true
 
-            - name: Check for CRLF line endings
+      - name: Check for CRLF line endings
         run: |
           if grep -RIl $'\r' .github/workflows/; then
             echo "ERROR: CRLF detected in workflow files"
             exit 1
           fi
 
-              - name: Check indentation consistency
+      - name: Check indentation consistency
         run: |
-          grep -RIn $'\t' .github/workflows/ && \
-          (echo "ERROR: Tabs detected in workflow files"; exit 1) || \
-          echo "Indentation OK"
+          if grep -RIn $'\t' .github/workflows/; then
+            echo "ERROR: Tabs detected in workflow files"
+            exit 1
+          else
+            echo "Indentation OK"
+          fi
 
-              - name: Validate here-doc blocks
+      - name: Validate here-doc blocks
         run: |
           if grep -RIn "<< 'PY'" .github/workflows/; then
             echo "Here-doc blocks detected, checking indentation..."
-            # kontrola indentace začátku a konce
-            # (bezpečné, krátké, validní)
+            # Sem můžeš později přidat detailní kontrolu indentace
           fi
-              - name: Validate JSON blocks
+
+      - name: Validate JSON blocks
         run: |
           jq empty .github/workflows/*.yml || \
           echo "WARNING: JSON blocks inside YAML may be malformed"
 
       - name: Validate HTML blocks
         run: |
-          grep -RIn "<html>" .github/workflows/ && \
-          echo "HTML detected inside YAML, checking formatting..."
+          if grep -RIn "<html>" .github/workflows/; then
+            echo "HTML detected inside YAML, checking formatting..."
+          fi
