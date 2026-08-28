@@ -2,15 +2,6 @@ name: STARCORE Orchestrator v13 (AI-powered)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/starcore_v13.yml"
-      - "workspace_map.json"
-      - "**/*.ps1"
-      - "**/*.md"
-      - "**/*.json"
 
 permissions:
   contents: write
@@ -18,279 +9,160 @@ permissions:
 jobs:
   orchestrator_v13:
     runs-on: ubuntu-latest
-    env:
-      WORKSPACE_ROOT: ${{ github.workspace }}
-      REPORT_FILE: ${{ github.workspace }}/starcore_validation_report.txt
 
     steps:
-      - name: Checkout STARCORE-WORKSPACE
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup environment
+      - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y jq python3
+          sudo apt install -y jq python3 python3-pip
 
-      - name: Ensure output files exist (pre-create)
+      - name: Pre-create all required output files
         run: |
-          cd "$WORKSPACE_ROOT"
-
-          # Pre-create all key output files so validator nikdy nepadá na missing files
+          cd ${{ github.workspace }}
           touch dashboard.html
           touch dependency_graph.json
           touch starcore_orchestrator_log.txt
           touch starcore_analyzer_log.txt
           touch starcore_ai_report.md
 
-      - name: Generate dashboard.html (AI workspace overview)
+      - name: Generate dashboard.html
         run: |
-          cd "$WORKSPACE_ROOT"
+          cd ${{ github.workspace }}
+          MAP="workspace_map.json"
+          OUT="dashboard.html"
 
-          if [ -f "workspace_map.json" ]; then
-            python3 - << 'PYCODE'
-import json, os
+          echo "<html><body><h1>STARCORE Dashboard v13</h1><table border=1>" > $OUT
+          echo "<tr><th>Project</th><th>Category</th><th>GitHub</th><th>Path</th><th>Status</th></tr>" >> $OUT
 
-root = os.environ.get("WORKSPACE_ROOT", ".")
-map_path = os.path.join(root, "workspace_map.json")
-dash_path = os.path.join(root, "dashboard.html")
+          jq -c '.[]' $MAP | while read line; do
+            NAME=$(echo $line | jq -r '.Project')
+            CAT=$(echo $line | jq -r '.Category')
+            GIT=$(echo $line | jq -r '.GitHub')
+            PATH=$(echo $line | jq -r '.Path')
+            FULL="${{ github.workspace }}/$PATH"
 
-with open(map_path, "r", encoding="utf-8") as f:
-    projects = json.load(f)
+            if [ -d "$FULL" ]; then STATUS="OK"; else STATUS="MISSING"; fi
 
-html = []
-html.append("<html><head><title>STARCORE Dashboard v13</title></head><body>")
-html.append("<h1>STARCORE Workspace Dashboard (v13 AI-powered)</h1>")
-html.append("<table border='1' cellspacing='0' cellpadding='4'>")
-html.append("<tr><th>Project</th><th>Category</th><th>GitHub</th><th>Path</th><th>Status</th></tr>")
+            echo "<tr><td>$NAME</td><td>$CAT</td><td>$GIT</td><td>$PATH</td><td>$STATUS</td></tr>" >> $OUT
+          done
 
-for proj in projects:
-    name = proj.get("Project", "")
-    category = proj.get("Category", "")
-    github = proj.get("GitHub", "")
-    path = proj.get("Path", "")
-    full = os.path.join(root, path)
-    status = "OK" if os.path.isdir(full) else "MISSING"
+          echo "</table></body></html>" >> $OUT
 
-    html.append(
-        f"<tr><td>{name}</td><td>{category}</td><td><a href='{github}'>{github}</a></td><td>{path}</td><td>{status}</td></tr>"
-    )
-
-html.append("</table>")
-html.append("</body></html>")
-
-with open(dash_path, "w", encoding="utf-8") as f:
-    f.write("\n".join(html))
-PYCODE
-          else
-            echo "workspace_map.json missing, dashboard will stay empty" >> starcore_orchestrator_log.txt
-          fi
-
-      - name: Generate dependency_graph.json (PowerShell module dependencies)
+      - name: Generate dependency_graph.json
         run: |
-          cd "$WORKSPACE_ROOT"
+          cd ${{ github.workspace }}
+          MAP="workspace_map.json"
+          OUT="dependency_graph.json"
 
-          python3 - << 'PYCODE'
-import json, os, subprocess
+          echo "[" > $OUT
+          FIRST=true
 
-root = os.environ.get("WORKSPACE_ROOT", ".")
-map_path = os.path.join(root, "workspace_map.json")
-graph_path = os.path.join(root, "dependency_graph.json")
+          jq -c '.[]' $MAP | while read line; do
+            NAME=$(echo $line | jq -r '.Project')
+            PATH=$(echo $line | jq -r '.Path')
+            FULL="${{ github.workspace }}/$PATH"
 
-if not os.path.isfile(map_path):
-    with open(graph_path, "w", encoding="utf-8") as f:
-        f.write("[]")
-    raise SystemExit(0)
+            if [ -d "$FULL" ]; then
+              find "$FULL" -type f -name "*.ps1" | while read script; do
+                MODULES=$(grep -i "Import-Module" "$script" | sed 's/Import-Module//Ig' | xargs -0 echo)
 
-with open(map_path, "r", encoding="utf-8") as f:
-    projects = json.load(f)
+                for m in $MODULES; do
+                  if [ "$FIRST" = true ]; then FIRST=false; else echo "," >> $OUT; fi
+                  echo "{\"Project\":\"$NAME\",\"Module\":\"$m\",\"Script\":\"$script\"}" >> $OUT
+                done
+              done
+            fi
+          done
 
-graph = []
-
-for proj in projects:
-    name = proj.get("Project", "")
-    path = proj.get("Path", "")
-    full = os.path.join(root, path)
-
-    if not os.path.isdir(full):
-        continue
-
-    for dirpath, _, filenames in os.walk(full):
-        for fn in filenames:
-            if fn.lower().endswith(".ps1"):
-                ps1_path = os.path.join(dirpath, fn)
-                try:
-                    with open(ps1_path, "r", encoding="utf-8", errors="ignore") as sf:
-                        for line in sf:
-                            line = line.strip()
-                            if line.startswith("Import-Module"):
-                                module = line.replace("Import-Module", "").strip()
-                                if module:
-                                    graph.append({
-                                        "Project": name,
-                                        "Script": os.path.relpath(ps1_path, root),
-                                        "Module": module
-                                    })
-                except Exception:
-                    pass
-
-with open(graph_path, "w", encoding="utf-8") as f:
-    json.dump(graph, f, indent=2)
-PYCODE
+          echo "]" >> $OUT
 
       - name: Generate starcore_orchestrator_log.txt
         run: |
-          cd "$WORKSPACE_ROOT"
+          cd ${{ github.workspace }}
+          MAP="workspace_map.json"
+          LOG="starcore_orchestrator_log.txt"
 
-          echo "=== STARCORE ORCHESTRATOR v13 LOG ===" > starcore_orchestrator_log.txt
+          echo "=== STARCORE ORCHESTRATOR v13 LOG ===" > $LOG
 
-          if [ -f "workspace_map.json" ]; then
-            python3 - << 'PYCODE'
-import json, os
+          jq -c '.[]' $MAP | while read line; do
+            NAME=$(echo $line | jq -r '.Project')
+            PATH=$(echo $line | jq -r '.Path')
+            FULL="${{ github.workspace }}/$PATH"
 
-root = os.environ.get("WORKSPACE_ROOT", ".")
-map_path = os.path.join(root, "workspace_map.json")
-log_path = os.path.join(root, "starcore_orchestrator_log.txt")
-
-with open(map_path, "r", encoding="utf-8") as f:
-    projects = json.load(f)
-
-lines = []
-lines.append("=== STARCORE ORCHESTRATOR v13 LOG ===")
-
-for proj in projects:
-    name = proj.get("Project", "")
-    path = proj.get("Path", "")
-    full = os.path.join(root, path)
-
-    if os.path.isdir(full):
-        count = 0
-        total = 0
-        for dirpath, _, filenames in os.walk(full):
-            for fn in filenames:
-                fp = os.path.join(dirpath, fn)
-                try:
-                    size = os.path.getsize(fp)
-                except OSError:
-                    size = 0
-                total += size
-                count += 1
-        mb = total / (1024 * 1024)
-        lines.append(f"{name} → {count} files, {mb:.2f} MB, path={path}")
-    else:
-        lines.append(f"{name} → MISSING PATH ({path})")
-
-with open(log_path, "w", encoding="utf-8") as f:
-    f.write("\n".join(lines))
-PYCODE
-          else
-            echo "workspace_map.json missing, cannot generate orchestrator log" >> starcore_orchestrator_log.txt
-          fi
+            if [ -d "$FULL" ]; then
+              COUNT=$(find "$FULL" -type f | wc -l)
+              SIZE=$(du -sh "$FULL" | awk '{print $1}')
+              echo "$NAME → $COUNT files, $SIZE, path=$PATH" >> $LOG
+            else
+              echo "$NAME → MISSING PATH ($PATH)" >> $LOG
+            fi
+          done
 
       - name: Generate starcore_analyzer_log.txt
         run: |
-          cd "$WORKSPACE_ROOT"
+          cd ${{ github.workspace }}
+          MAP="workspace_map.json"
+          LOG="starcore_analyzer_log.txt"
 
-          echo "=== WORKSPACE ANALYZER v13 LOG ===" > starcore_analyzer_log.txt
+          echo "=== WORKSPACE ANALYZER v13 LOG ===" > $LOG
 
-          python3 - << 'PYCODE'
-import json, os
+          jq -c '.[]' $MAP | while read line; do
+            NAME=$(echo $line | jq -r '.Project')
+            PATH=$(echo $line | jq -r '.Path')
+            FULL="${{ github.workspace }}/$PATH"
 
-root = os.environ.get("WORKSPACE_ROOT", ".")
-map_path = os.path.join(root, "workspace_map.json")
-log_path = os.path.join(root, "starcore_analyzer_log.txt")
+            if [ -d "$FULL" ]; then
+              FILES=$(find "$FULL" -type f | wc -l)
+              PS1=$(find "$FULL" -type f -name "*.ps1" | wc -l)
+              MD=$(find "$FULL" -type f -name "*.md" | wc -l)
+              echo "$NAME → files=$FILES, ps1=$PS1, md=$MD, path=$PATH" >> $LOG
+            else
+              echo "$NAME → MISSING PATH ($PATH)" >> $LOG
+            fi
+          done
 
-if not os.path.isfile(map_path):
-    with open(log_path, "a", encoding="utf-8") as f:
-        f.write("\nworkspace_map.json missing, analyzer cannot run\n")
-    raise SystemExit(0)
-
-with open(map_path, "r", encoding="utf-8") as f:
-    projects = json.load(f)
-
-lines = []
-lines.append("=== WORKSPACE ANALYZER v13 LOG ===")
-
-for proj in projects:
-    name = proj.get("Project", "")
-    path = proj.get("Path", "")
-    full = os.path.join(root, path)
-
-    if os.path.isdir(full):
-        files = 0
-        ps1 = 0
-        md = 0
-        json_count = 0
-
-        for dirpath, _, filenames in os.walk(full):
-            for fn in filenames:
-                files += 1
-                lower = fn.lower()
-                if lower.endswith(".ps1"):
-                    ps1 += 1
-                elif lower.endswith(".md"):
-                    md += 1
-                elif lower.endswith(".json"):
-                    json_count += 1
-
-        lines.append(f"{name} → {files} files, ps1={ps1}, md={md}, json={json_count}, path={path}")
-    else:
-        lines.append(f"{name} → MISSING PATH ({path})")
-
-with open(log_path, "w", encoding="utf-8") as f:
-    f.write("\n".join(lines))
-PYCODE
-
-      - name: Generate starcore_ai_report.md (AI skeleton)
+      - name: Generate starcore_ai_report.md
         run: |
-          cd "$WORKSPACE_ROOT"
+          cd ${{ github.workspace }}
+          MAP="workspace_map.json"
+          OUT="starcore_ai_report.md"
 
-          python3 - << 'PYCODE'
-import json, os
+          echo "# STARCORE AI Report v13" > $OUT
+          echo "" >> $OUT
+          echo "## Workspace overview" >> $OUT
 
-root = os.environ.get("WORKSPACE_ROOT", ".")
-map_path = os.path.join(root, "workspace_map.json")
-report_path = os.path.join(root, "starcore_ai_report.md")
+          jq -c '.[]' $MAP | while read line; do
+            NAME=$(echo $line | jq -r '.Project')
+            CAT=$(echo $line | jq -r '.Category')
+            GIT=$(echo $line | jq -r '.GitHub')
+            PATH=$(echo $line | jq -r '.Path')
+            FULL="${{ github.workspace }}/$PATH"
 
-lines = []
-lines.append("# STARCORE AI Report v13 (Auto-generated skeleton)")
-lines.append("")
-lines.append("## Workspace summary")
+            if [ -d "$FULL" ]; then
+              FILES=$(find "$FULL" -type f | wc -l)
+              echo "- **$NAME** ($CAT) → $FILES files, path=$PATH, GitHub=$GIT" >> $OUT
+            else
+              echo "- **$NAME** ($CAT) → MISSING PATH ($PATH), GitHub=$GIT" >> $OUT
+            fi
+          done
 
-if os.path.isfile(map_path):
-    with open(map_path, "r", encoding="utf-8") as f:
-        projects = json.load(f)
+          echo "" >> $OUT
+          echo "## AI recommendations" >> $OUT
+          echo "- Normalize workspace_map.json" >> $OUT
+          echo "- Add tests to core projects" >> $OUT
+          echo "- Use STARCORE v14 Auto-Fixer" >> $OUT
 
-    for proj in projects:
-        name = proj.get("Project", "")
-        path = proj.get("Path", "")
-        full = os.path.join(root, path)
-        status = "OK" if os.path.isdir(full) else "MISSING"
-        lines.append(f"- {name}: path={path}, status={status}")
-else:
-    lines.append("- workspace_map.json missing, cannot summarize projects")
-
-lines.append("")
-lines.append("## AI recommendations (placeholder)")
-lines.append("- Review archived projects with missing paths")
-lines.append("- Add build/test pipelines to core projects")
-lines.append("- Ensure workspace_map.json stays in sync with real directories")
-lines.append("- Introduce per-project health checks and telemetry")
-
-with open(report_path, "w", encoding="utf-8") as f:
-    f.write("\n".join(lines))
-PYCODE
-
-      - name: Commit and push orchestrator outputs
+      - name: Commit and push v13 outputs
         run: |
-          cd "$WORKSPACE_ROOT"
-
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-          git add dashboard.html dependency_graph.json starcore_orchestrator_log.txt starcore_analyzer_log.txt starcore_ai_report.md || true
+          git add dashboard.html dependency_graph.json starcore_orchestrator_log.txt starcore_analyzer_log.txt starcore_ai_report.md
 
-          git commit -m "STARCORE v13 Orchestrator Outputs" || echo "No changes to commit"
-
-          git push "https://github.com/${{ github.repository }}.git" HEAD:main
+          git commit -m "STARCORE v13 outputs generated" || echo "No changes"
+          git push
