@@ -1,6 +1,10 @@
 name: STARCORE Workflow Validator
 
 on:
+  push:
+    paths:
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
   workflow_dispatch:
   workflow_run:
     workflows: ["STARCORE Orchestrator v13 (AI-powered)"]
@@ -15,6 +19,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: |
+          sudo apt update
+          sudo apt install -y yamllint
+
+      - name: Validate YAML syntax
+        run: |
+          yamllint .github/workflows/
+
+      - name: Validate GitHub Actions workflow structure
+        uses: docker://ghcr.io/github/actions-workflow-linter:latest
+        with:
+          path: ".github/workflows/"
+      
       - name: Checkout workspace
         uses: actions/checkout@v4
         with:
