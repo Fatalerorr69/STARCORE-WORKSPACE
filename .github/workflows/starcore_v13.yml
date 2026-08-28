@@ -1,0 +1,193 @@
+name: STARCORE Orchestrator v13 (AI-powered)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  starcore_v13:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout workspace
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y jq
+        python -m pip install --upgrade pip
+        pip install openai
+
+    - name: Run STARCORE Orchestrator v13
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        WORKSPACE_ROOT="$GITHUB_WORKSPACE"
+        MAP_FILE="$WORKSPACE_ROOT/workspace_map.json"
+
+        # -----------------------------------------
+        # 1) ORCHESTRATOR LOG
+        # -----------------------------------------
+        ORCH_LOG="$WORKSPACE_ROOT/starcore_orchestrator_log.txt"
+        echo "=== STARCORE ORCHESTRATOR v13 ===" > "$ORCH_LOG"
+
+        jq -c '.[]' "$MAP_FILE" | while read proj; do
+          name=$(echo "$proj" | jq -r '.Project')
+          path=$(echo "$proj" | jq -r '.Path')
+          full="$WORKSPACE_ROOT/$path"
+
+          if [ ! -d "$full" ]; then
+            echo "MISSING: $name ($path)" >> "$ORCH_LOG"
+            continue
+          fi
+
+          count=$(find "$full" -type f | wc -l)
+          size=$(du -sm "$full" | cut -f1)
+
+          echo "$name → $count files, $size MB" >> "$ORCH_LOG"
+        done
+
+        # -----------------------------------------
+        # 2) DASHBOARD
+        # -----------------------------------------
+        DASH="$WORKSPACE_ROOT/dashboard.html"
+        echo "<html><body><h1>STARCORE Dashboard</h1><table border=1>" > "$DASH"
+
+        jq -c '.[]' "$MAP_FILE" | while read proj; do
+          name=$(echo "$proj" | jq -r '.Project')
+          cat=$(echo "$proj" | jq -r '.Category')
+          gh=$(echo "$proj" | jq -r '.GitHub')
+          path=$(echo "$proj" | jq -r '.Path')
+
+          echo "<tr><td>$name</td><td>$cat</td><td><a href='$gh'>Repo</a></td><td>$path</td></tr>" >> "$DASH"
+        done
+
+        echo "</table></body></html>" >> "$DASH"
+
+        # -----------------------------------------
+        # 3) DEPENDENCY GRAPH
+        # -----------------------------------------
+        GRAPH="$WORKSPACE_ROOT/dependency_graph.json"
+        echo "[" > "$GRAPH"
+        first=true
+
+        jq -c '.[]' "$MAP_FILE" | while read proj; do
+          name=$(echo "$proj" | jq -r '.Project')
+          path=$(echo "$proj" | jq -r '.Path')
+          full="$WORKSPACE_ROOT/$path"
+
+          if [ ! -d "$full" ]; then
+            continue
+          fi
+
+          find "$full" -type f -name "*.ps1" | while read file; do
+            module=$(grep -oP 'Import-Module\s+\K\S+' "$file")
+
+            if [ ! -z "$module" ]; then
+              if [ "$first" = true ]; then
+                first=false
+              else
+                echo "," >> "$GRAPH"
+              fi
+
+              echo "{\"Project\":\"$name\",\"Module\":\"$module\"}" >> "$GRAPH"
+            fi
+          done
+        done
+
+        echo "]" >> "$GRAPH"
+
+        # -----------------------------------------
+        # 4) ANALYZER LOG
+        # -----------------------------------------
+        ANA_LOG="$WORKSPACE_ROOT/starcore_analyzer_log.txt"
+        echo "=== WORKSPACE ANALYZER ===" > "$ANA_LOG"
+
+        jq -c '.[]' "$MAP_FILE" | while read proj; do
+          name=$(echo "$proj" | jq -r '.Project')
+          path=$(echo "$proj" | jq -r '.Path')
+          full="$WORKSPACE_ROOT/$path"
+
+          if [ ! -d "$full" ]; then
+            echo "$name → MISSING" >> "$ANA_LOG"
+            continue
+          fi
+
+          count=$(find "$full" -type f | wc -l)
+          size=$(du -sm "$full" | cut -f1)
+          ps1=$(find "$full" -type f -name "*.ps1" | wc -l)
+
+          echo "$name → $count files, $size MB, $ps1 ps1 scripts" >> "$ANA_LOG"
+        done
+
+        # -----------------------------------------
+        # 5) AI REPORT
+        # -----------------------------------------
+        python << 'PY'
+import os, json, subprocess, textwrap
+
+workspace_root = os.environ["GITHUB_WORKSPACE"]
+map_file = os.path.join(workspace_root, "workspace_map.json")
+ai_report = os.path.join(workspace_root, "starcore_ai_report.md")
+
+with open(map_file, "r", encoding="utf-8") as f:
+    projects = json.load(f)
+
+summary = []
+for proj in projects:
+    name = proj["Project"]
+    path = os.path.join(workspace_root, proj["Path"])
+    if not os.path.isdir(path):
+        summary.append(f"- {name}: MISSING PATH ({proj['Path']})")
+        continue
+
+    result = subprocess.run(
+        ["bash", "-lc", f"find '{path}' -type f | wc -l"],
+        capture_output=True, text=True
+    )
+    count = result.stdout.strip()
+
+    result = subprocess.run(
+        ["bash", "-lc", f"du -sm '{path}' | cut -f1"],
+        capture_output=True, text=True
+    )
+    size = result.stdout.strip()
+
+    summary.append(f"- {name}: {count} files, {size} MB")
+
+report = [
+    "# STARCORE Orchestrator v13 (AI-powered)",
+    "",
+    "## Workspace summary",
+    "",
+    *summary,
+    "",
+    "## AI recommendations",
+    "",
+    "- Clean archived projects with missing paths",
+    "- Add build scripts to core projects",
+    "- Introduce automated tests",
+    "- Add metadata to workspace_map.json",
+]
+
+with open(ai_report, "w", encoding="utf-8") as f:
+    f.write("\n".join(report))
+PY
+
+    - name: Commit results
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add dashboard.html dependency_graph.json starcore_orchestrator_log.txt starcore_analyzer_log.txt starcore_ai_report.md
+        git commit -m "STARCORE v13 update" || echo "No changes"
+        git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Fatalerorr69/STARCORE-WORKSPACE.git" HEAD:main
