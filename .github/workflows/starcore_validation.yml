@@ -3,7 +3,7 @@ name: STARCORE Workflow Validator
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ["STARCORE Master Orchestrator"]
+    workflows: ["STARCORE Orchestrator v13 (AI-powered)"]
     types:
       - completed
 
@@ -33,28 +33,24 @@ jobs:
         echo "=== STARCORE VALIDATION REPORT ===" > "$REPORT"
         echo "" >> "$REPORT"
 
-        # 1) Dashboard
         if [ -f "$WORKSPACE_ROOT/dashboard.html" ]; then
           echo "[OK] Dashboard exists" >> "$REPORT"
         else
           echo "[ERROR] Dashboard missing" >> "$REPORT"
         fi
 
-        # 2) Dependency graph
         if [ -f "$WORKSPACE_ROOT/dependency_graph.json" ]; then
           echo "[OK] Dependency graph exists" >> "$REPORT"
         else
           echo "[ERROR] Dependency graph missing" >> "$REPORT"
         fi
 
-        # 3) Workspace map
         if jq empty "$WORKSPACE_ROOT/workspace_map.json" 2>/dev/null; then
           echo "[OK] workspace_map.json is valid JSON" >> "$REPORT"
         else
           echo "[ERROR] workspace_map.json invalid or missing" >> "$REPORT"
         fi
 
-        # 4) README files
         README_COUNT=$(find "$WORKSPACE_ROOT" -type f -name "README.md" | wc -l)
         echo "[INFO] README files found: $README_COUNT" >> "$REPORT"
 
@@ -64,21 +60,18 @@ jobs:
           echo "[ERROR] No README files generated" >> "$REPORT"
         fi
 
-        # 5) Orchestrator log
-        if grep -q "STARCORE ORCHESTRATOR" "$WORKSPACE_ROOT/starcore_orchestrator_log.txt" 2>/dev/null; then
+        if grep -q "STARCORE ORCHESTRATOR v13" "$WORKSPACE_ROOT/starcore_orchestrator_log.txt" 2>/dev/null; then
           echo "[OK] Orchestrator log exists" >> "$REPORT"
         else
           echo "[WARN] Orchestrator log missing" >> "$REPORT"
         fi
 
-        # 6) Analyzer log
         if grep -q "WORKSPACE ANALYZER" "$WORKSPACE_ROOT/starcore_analyzer_log.txt" 2>/dev/null; then
           echo "[OK] Analyzer log exists" >> "$REPORT"
         else
           echo "[WARN] Analyzer log missing" >> "$REPORT"
         fi
 
-        # 7) Last commit
         LAST_COMMIT=$(git log -1 --pretty=format:"%an - %s")
         echo "[INFO] Last commit: $LAST_COMMIT" >> "$REPORT"
 
