@@ -17,24 +17,24 @@ jobs:
           fetch-depth: 0
 
       - name: Install dependencies and verify
-  run: |
-    sudo apt update
-    sudo apt install -y jq python3 python3-pip
-    # verify installations
-    if ! command -v jq >/dev/null 2>&1; then
-      echo "ERROR: jq not installed" >&2
-      exit 1
+    run: |
+      sudo apt update
+      sudo apt install -y jq python3 python3-pip
+      # verify installations
+        if ! command -v jq >/dev/null 2>&1; then
+          echo "ERROR: jq not installed" >&2
+        exit 1
     fi
-    if ! command -v python3 >/dev/null 2>&1; then
-      echo "ERROR: python3 not installed" >&2
+      if ! command -v python3 >/dev/null 2>&1; then
+        echo "ERROR: python3 not installed" >&2
       exit 1
-    fi
-    jq --version
-    python3 --version
+        fi
+        jq --version
+        python3 --version
 
 
       - name: Pre-create all required output files
-        run: |
+          run: |
           cd ${{ github.workspace }}
           touch dashboard.html
           touch dependency_graph.json
@@ -43,7 +43,7 @@ jobs:
           touch starcore_ai_report.md
 
       - name: Generate dashboard.html
-        run: |
+          run: |
           cd ${{ github.workspace }}
           MAP="workspace_map.json"
           OUT="dashboard.html"
@@ -66,7 +66,7 @@ jobs:
           echo "</table></body></html>" >> $OUT
 
       - name: Generate dependency_graph.json
-        run: |
+          run: |
           cd ${{ github.workspace }}
           MAP="workspace_map.json"
           OUT="dependency_graph.json"
