@@ -1,13 +1,13 @@
 === STARCORE VALIDATION REPORT ===
 
-[ERROR] Dashboard missing
-[ERROR] Dependency graph missing
+[OK] Dashboard exists
+[OK] Dependency graph exists
 [OK] workspace_map.json is valid JSON
 [INFO] README files found: 24
 [OK] Documentation generated
-[WARN] Orchestrator log missing
-[WARN] Analyzer log missing
-[INFO] Last commit: Jacob Starko - Delete starcore_v13.yml
+[OK] Orchestrator log exists
+[OK] Analyzer log exists
+[INFO] Last commit: Jacob Starko - Update starcore_v13.yml
 [WARN] Last commit not from GitHub Actions
 
 === VALIDATION COMPLETE ===
