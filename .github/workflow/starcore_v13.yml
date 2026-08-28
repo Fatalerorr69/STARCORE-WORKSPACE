@@ -51,17 +51,19 @@ for proj in projects:
     if not os.path.isdir(path):
         summary.append(f"- {name}: MISSING PATH ({proj['Path']})")
         continue
-    # count files and size
+
     result = subprocess.run(
         ["bash", "-lc", f"find '{path}' -type f | wc -l"],
         capture_output=True, text=True
     )
     count = result.stdout.strip()
+
     result = subprocess.run(
         ["bash", "-lc", f"du -sm '{path}' | cut -f1"],
         capture_output=True, text=True
     )
     size = result.stdout.strip()
+
     summary.append(f"- {name}: {count} files, {size} MB, path={proj['Path']}")
 
 report = [
@@ -77,7 +79,6 @@ report = [
     "",
 ]
 
-# jednoduchý AI komentář – bez detailů, jen meta shrnutí
 analysis_text = textwrap.dedent("""
 Workspace contains multiple categorized projects (core, mobile, raspberry, infra, tools, archived).
 Recommended next steps:
