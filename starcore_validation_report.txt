@@ -7,7 +7,7 @@
 [OK] Documentation generated
 [WARN] Orchestrator log missing
 [WARN] Analyzer log missing
-[INFO] Last commit: GitHub Actions - STARCORE Validation Report
-[OK] GitHub Actions committed changes
+[INFO] Last commit: Jacob Starko - Add STARCORE Orchestrator v14 workflow
+[WARN] Last commit not from GitHub Actions
 
 === VALIDATION COMPLETE ===
