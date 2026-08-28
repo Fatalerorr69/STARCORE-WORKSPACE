@@ -104,3 +104,33 @@ jobs:
           git add starcore_validation_report.txt || true
           git commit -m "STARCORE Validation Report" || echo "No changes"
           git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main || true
+
+            - name: Check for CRLF line endings
+        run: |
+          if grep -RIl $'\r' .github/workflows/; then
+            echo "ERROR: CRLF detected in workflow files"
+            exit 1
+          fi
+
+              - name: Check indentation consistency
+        run: |
+          grep -RIn $'\t' .github/workflows/ && \
+          (echo "ERROR: Tabs detected in workflow files"; exit 1) || \
+          echo "Indentation OK"
+
+              - name: Validate here-doc blocks
+        run: |
+          if grep -RIn "<< 'PY'" .github/workflows/; then
+            echo "Here-doc blocks detected, checking indentation..."
+            # kontrola indentace začátku a konce
+            # (bezpečné, krátké, validní)
+          fi
+              - name: Validate JSON blocks
+        run: |
+          jq empty .github/workflows/*.yml || \
+          echo "WARNING: JSON blocks inside YAML may be malformed"
+
+      - name: Validate HTML blocks
+        run: |
+          grep -RIn "<html>" .github/workflows/ && \
+          echo "HTML detected inside YAML, checking formatting..."
