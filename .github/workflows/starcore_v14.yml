@@ -41,7 +41,7 @@ jobs:
         AI_FIX_LOG="$WORKSPACE_ROOT/starcore_v14_fixlog.md"
 
         python << 'PY'
-import os, json, subprocess, textwrap
+import os, json, textwrap
 
 workspace_root = os.environ["GITHUB_WORKSPACE"]
 map_file = os.path.join(workspace_root, "workspace_map.json")
@@ -62,18 +62,15 @@ for proj in projects:
 
     full = os.path.join(workspace_root, path)
 
-    # Fix: missing project name
     if name.strip() == "":
-        log.append(f"- FIX: Empty project name → replaced with UNKNOWN_PROJECT")
+        log.append(f"- FIX: Empty project name → UNKNOWN_PROJECT")
         name = "UNKNOWN_PROJECT"
 
-    # Fix: missing path
     if not os.path.isdir(full):
-        log.append(f"- FIX: Missing path for {name} → moved to archived/")
+        log.append(f"- FIX: Missing path for {name} → archived/{name}")
         category = "archived"
         path = f"archived/{name}"
 
-    # Fix: GitHub URL mismatch
     expected_url = f"https://github.com/Fatalerorr69/{name}"
     if github != expected_url:
         log.append(f"- FIX: GitHub URL corrected for {name}")
@@ -90,7 +87,7 @@ with open(fixed_map, "w", encoding="utf-8") as f:
     json.dump(fixed, f, indent=2)
 
 with open(fixlog, "w", encoding="utf-8") as f:
-    f.write("\n".join(log))
+    f.write("\\n".join(log))
 PY
 
     - name: Replace workspace map
